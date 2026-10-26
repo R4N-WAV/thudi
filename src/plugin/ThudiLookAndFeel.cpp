@@ -53,8 +53,10 @@ static void drawFallbackKnob (juce::Graphics& g, juce::Rectangle<float> r, bool 
 
 void ThudiLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int w, int h, float pos, float start, float end, juce::Slider& s)
 {
+    // component bounds are 1.4x the knob diameter so the printed scale and shadow fit around it
     auto r = juce::Rectangle<float> ((float) x, (float) y, (float) w, (float) h);
-    r = r.withSizeKeepingCentre (juce::jmin (r.getWidth(), r.getHeight()), juce::jmin (r.getWidth(), r.getHeight()));
+    const float d = juce::jmin (r.getWidth(), r.getHeight()) / 1.4f;
+    r = r.withSizeKeepingCentre (d, d);
     const bool red = s.getProperties()["knobStyle"].toString() == "red";
     auto img = assets::image (red ? "knob_red.png" : "knob_black.png");
     if (img.isValid())   // renders are framed at 1.25x the knob diameter (room for the shadow)
@@ -62,22 +64,19 @@ void ThudiLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int w,
     else
         drawFallbackKnob (g, r, red);
 
-    // value arc printed on the body (subtle)
+    // printed scale: 11 silkscreen ticks around the knob (no glowing arcs)
     const float angle = start + pos * (end - start);
     const auto c = r.getCentre();
     const float rad = r.getWidth() * 0.5f;
     if (s.getProperties()["showArc"].toString() != "no")
     {
-        juce::Path arc;
-        arc.addCentredArc (c.x, c.y, rad * 1.06f, rad * 1.06f, 0, start, end, true);
-        g.setColour (colours::printDim.withAlpha (0.35f));
-        g.strokePath (arc, juce::PathStrokeType (1.2f));
-        juce::Path val;
-        const bool bip = s.getProperties()["bipolar"].toString() == "yes";
-        const float a0 = bip ? (start + end) * 0.5f : start;
-        val.addCentredArc (c.x, c.y, rad * 1.06f, rad * 1.06f, 0, juce::jmin (a0, angle), juce::jmax (a0, angle), true);
-        g.setColour (colours::lcdDim.withAlpha (0.9f));
-        g.strokePath (val, juce::PathStrokeType (2.0f));
+        g.setColour (colours::print.withAlpha (0.55f));
+        for (int k = 0; k <= 10; ++k)
+        {
+            const float a = start + (end - start) * (float) k / 10.0f;
+            const float r0 = rad * 1.10f, r1 = rad * ((k == 0 || k == 5 || k == 10) ? 1.26f : 1.19f);
+            g.drawLine ({ c.getPointOnCircumference (r0, a), c.getPointOnCircumference (r1, a) }, (k % 5 == 0) ? 1.3f : 0.9f);
+        }
     }
     // pointer line (cream, slightly engraved)
     const float r0 = rad * 0.30f, r1 = rad * 0.66f;

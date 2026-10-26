@@ -121,7 +121,7 @@ void PanelContent::paint (juce::Graphics& g)
     g.setColour (colours::print);
     g.setFont (assets::labelFont (13.0f));
     auto under = [&] (juce::Point<float> c, float rad, const juce::String& t)
-    { g.drawText (t, juce::Rectangle<float> (c.x - 60.0f, c.y + rad + 3.0f, 120.0f, 15.0f), juce::Justification::centredTop); };
+    { g.drawText (t, juce::Rectangle<float> (c.x - 60.0f, c.y + rad * 1.28f + 2.0f, 120.0f, 15.0f), juce::Justification::centredTop); };
     under (L::masterKnob(), L::masterKnobR, "MASTER");
     under (L::driveKnob(), L::smallKnobR, "BUS DRIVE");
     g.drawText ("DATA ENTRY", juce::Rectangle<float> (L::wheel().x - 60.0f, L::wheel().y - L::wheelR - 22.0f, 120.0f, 15.0f), juce::Justification::centred);
@@ -196,8 +196,8 @@ ThudiEditor::ThudiEditor (ThudiProcessor& p)
         content.addAndMakeVisible (s);
     };
     setupKnob (masterKnob, true); setupKnob (driveKnob, false);
-    masterKnob.setBounds (juce::Rectangle<float> (L::masterKnobR * 2, L::masterKnobR * 2).withCentre (L::masterKnob()).toNearestInt());
-    driveKnob.setBounds (juce::Rectangle<float> (L::smallKnobR * 2, L::smallKnobR * 2).withCentre (L::driveKnob()).toNearestInt());
+    masterKnob.setBounds (juce::Rectangle<float> (L::masterKnobR * 2.8f, L::masterKnobR * 2.8f).withCentre (L::masterKnob()).toNearestInt());
+    driveKnob.setBounds (juce::Rectangle<float> (L::smallKnobR * 2.8f, L::smallKnobR * 2.8f).withCentre (L::driveKnob()).toNearestInt());
     masterAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (proc.apvts, ThudiProcessor::globalParamId (G::Master), masterKnob);
     driveAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (proc.apvts, ThudiProcessor::globalParamId (G::BusDrive), driveKnob);
     masterKnob.setDoubleClickReturnValue (true, 0.0);
@@ -205,7 +205,7 @@ ThudiEditor::ThudiEditor (ThudiProcessor& p)
     for (int i = 0; i < 8; ++i)
     {
         setupKnob (pageKnobs[(size_t) i], false);
-        pageKnobs[(size_t) i].setBounds (juce::Rectangle<float> (L::pageKnobR * 2, L::pageKnobR * 2).withCentre (L::pageKnob (i)).toNearestInt());
+        pageKnobs[(size_t) i].setBounds (juce::Rectangle<float> (L::pageKnobR * 2.8f, L::pageKnobR * 2.8f).withCentre (L::pageKnob (i)).toNearestInt());
         pageKnobs[(size_t) i].onDragStart = [this, i] { lcd.focus = i; lcd.repaint(); };
     }
 

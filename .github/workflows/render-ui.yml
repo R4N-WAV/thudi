@@ -11,6 +11,9 @@ on:
       - "art/**"
       - ".github/workflows/render-ui.yml"
 
+permissions:
+  contents: write
+
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -44,3 +47,15 @@ jobs:
         with:
           name: thudi-ui-renders
           path: assets/ui/*.png
+
+      - name: Publish renders branch
+        shell: bash
+        run: |
+          mkdir -p publish && cp assets/ui/*.png publish/
+          cd publish
+          git init -q
+          git config user.name "thudi-ci"; git config user.email "ci@users.noreply.github.com"
+          git checkout -q -b ui-renders
+          echo "run ${{ github.run_id }} commit ${{ github.sha }}" > STATUS.txt
+          git add -A && git commit -q -m "UI renders for ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ui-renders

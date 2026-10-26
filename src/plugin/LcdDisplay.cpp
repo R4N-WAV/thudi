@@ -61,11 +61,9 @@ juce::Rectangle<float> LcdDisplay::listRow (int i) const { return { 6.0f, 30.0f 
 void LcdDisplay::paint (juce::Graphics& g)
 {
     auto r = getLocalBounds().toFloat();
-    // backlight
-    juce::ColourGradient bg (colours::lcdBg.brighter (0.12f), r.getCentreX(), r.getY(), colours::lcdBg2, r.getCentreX(), r.getBottom(), false);
+    // STN backlight: flat, very slightly uneven (edge-lit from the left)
+    juce::ColourGradient bg (colours::lcdBg.brighter (0.05f), r.getX(), r.getCentreY(), colours::lcdBg.darker (0.08f), r.getRight(), r.getCentreY(), false);
     g.setGradientFill (bg); g.fillRect (r);
-    juce::ColourGradient vign (juce::Colours::transparentBlack, r.getCentreX(), r.getCentreY(), juce::Colours::black.withAlpha (0.25f), r.getX(), r.getY(), true);
-    g.setGradientFill (vign); g.fillRect (r);
 
     g.saveState();
     if (mode == Mode::Edit) paintEdit (g, r); else paintBrowse (g, r);
@@ -86,12 +84,11 @@ void LcdDisplay::paint (juce::Graphics& g)
     g.setColour (juce::Colours::black.withAlpha (0.07f));
     for (float x = 0; x < r.getWidth(); x += 3.0f) g.fillRect (x, 0.0f, 0.6f, r.getHeight());
     for (float y = 0; y < r.getHeight(); y += 3.0f) g.fillRect (0.0f, y, r.getWidth(), 0.6f);
-    juce::Path glare;
-    glare.addQuadrilateral (0, 0, r.getWidth() * 0.55f, 0, r.getWidth() * 0.35f, r.getHeight(), 0, r.getHeight());
-    g.setColour (juce::Colours::white.withAlpha (0.035f));
-    g.fillPath (glare);
-    g.setColour (juce::Colours::black.withAlpha (0.5f));
-    g.drawRect (r, 2.0f);
+    // recessed behind the bezel: inner shadow on the top and left edges
+    juce::ColourGradient top (juce::Colours::black.withAlpha (0.55f), 0, 0, juce::Colours::transparentBlack, 0, 10.0f, false);
+    g.setGradientFill (top); g.fillRect (r.withHeight (10.0f));
+    juce::ColourGradient left (juce::Colours::black.withAlpha (0.4f), 0, 0, juce::Colours::transparentBlack, 8.0f, 0, false);
+    g.setGradientFill (left); g.fillRect (r.withWidth (8.0f));
 }
 
 static void invText (juce::Graphics& g, const juce::String& t, juce::Rectangle<float> r, juce::Justification j, bool inverted)
