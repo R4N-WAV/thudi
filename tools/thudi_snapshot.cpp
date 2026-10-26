@@ -111,6 +111,10 @@ static int makeWizardArt (const juce::File& dir)
     const float sc = 2.5f;
     auto panel = ed->createComponentSnapshot (ed->getLocalBounds(), true, sc);
     const juce::Colour bg (0xff161618), red (0xffff3b2a), print (0xffc9c6bd), dim (0xff8c8a84);
+    {   // full panel for the website / release page (2x)
+        auto two = ed->createComponentSnapshot (ed->getLocalBounds(), true, 2.0f);
+        writePng (two, dir.getChildFile ("thudi-panel@2x.png"));
+    }
 
     // tall side image 492 x 942: the துடி emblem and the first pad column, fading into the chassis
     {
