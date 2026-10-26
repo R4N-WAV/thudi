@@ -4,6 +4,7 @@
 #include "PluginEditor.h"
 #include "PluginProcessor.h"
 #include "PresetManager.h"
+#include "Assets.h"
 
 using namespace thudi;
 
@@ -47,9 +48,116 @@ static void snapshot (juce::Component& c, const juce::File& f, float scale)
     std::cout << "  wrote " << f.getFullPathName() << " (" << img.getWidth() << "x" << img.getHeight() << ")" << std::endl;
 }
 
+// ---------------------------------------------------------------- setup-wizard artwork (like Anbu's)
+static void writePng (const juce::Image& img, const juce::File& f)
+{
+    f.deleteFile(); juce::FileOutputStream os (f); juce::PNGImageFormat().writeImageToStream (img, os);
+}
+
+static juce::Image iconImage (int px)
+{
+    juce::Image img (juce::Image::ARGB, px, px, true);
+    juce::Graphics g (img);
+    const float w = (float) px;
+    auto disc = juce::Rectangle<float> (w, w).reduced (w * 0.03f);
+    juce::ColourGradient body (juce::Colour (0xff34343a), disc.getX(), disc.getY(), juce::Colour (0xff141416), disc.getRight(), disc.getBottom(), false);
+    g.setGradientFill (body); g.fillEllipse (disc);
+    g.setColour (juce::Colour (0xff4a4a50)); g.drawEllipse (disc.reduced (w * 0.01f), juce::jmax (1.0f, w * 0.02f));
+    // Tamil "thu" (first letter of துடி) in brushed silver
+    juce::Path p;
+    if (auto tf = thudi::assets::typeface ("Kavivanar-Regular.ttf"))
+    {
+        juce::GlyphArrangement ga;
+        ga.addLineOfText (juce::Font (juce::FontOptions (tf).withHeight (100.0f)), juce::String (juce::CharPointer_UTF8 ("\xe0\xae\xa4\xe0\xaf\x81")), 0, 0);
+        ga.createPath (p);
+    }
+    auto target = disc.reduced (w * 0.22f).translated (-w * 0.02f, w * 0.0f);
+    p.applyTransform (p.getTransformToScaleToFit (target, true));
+    g.setColour (juce::Colours::black.withAlpha (0.6f)); g.fillPath (p, juce::AffineTransform::translation (w * 0.01f, w * 0.015f));
+    juce::ColourGradient silver (juce::Colour (0xffeeebe3), target.getX(), target.getY(), juce::Colour (0xff9a978f), target.getRight(), target.getBottom(), false);
+    g.setGradientFill (silver); g.fillPath (p);
+    // red pad LED
+    auto led = juce::Rectangle<float> (w * 0.12f, w * 0.12f).withCentre ({ w * 0.76f, w * 0.26f });
+    g.setColour (juce::Colour (0x66ff3b2a)); g.fillEllipse (led.expanded (w * 0.04f));
+    g.setColour (juce::Colour (0xffff3b2a)); g.fillEllipse (led);
+    return img;
+}
+
+static void writeIco (const juce::File& f)
+{
+    const int sizes[] = { 16, 24, 32, 48, 64, 128, 256 };
+    std::vector<juce::MemoryBlock> pngs;
+    for (int s : sizes) { juce::MemoryOutputStream ms; juce::PNGImageFormat().writeImageToStream (iconImage (s), ms); pngs.push_back (ms.getMemoryBlock()); }
+    juce::MemoryOutputStream o;
+    o.writeShort (0); o.writeShort (1); o.writeShort ((short) pngs.size());
+    int offset = 6 + 16 * (int) pngs.size();
+    for (size_t i = 0; i < pngs.size(); ++i)
+    {
+        const int s = sizes[i];
+        o.writeByte ((char) (s >= 256 ? 0 : s)); o.writeByte ((char) (s >= 256 ? 0 : s)); o.writeByte (0); o.writeByte (0);
+        o.writeShort (1); o.writeShort (32); o.writeInt ((int) pngs[i].getSize()); o.writeInt (offset);
+        offset += (int) pngs[i].getSize();
+    }
+    for (auto& m : pngs) o.write (m.getData(), m.getSize());
+    f.deleteFile(); f.replaceWithData (o.getData(), o.getDataSize());
+}
+
+static int makeWizardArt (const juce::File& dir)
+{
+    auto proc = std::make_unique<ThudiProcessor>();
+    std::unique_ptr<juce::AudioProcessorEditor> ed (proc->createEditor());
+    ed->setSize (940, 1210);
+    if (auto* te = dynamic_cast<ThudiEditor*> (ed.get())) te->selectPad (0);
+    const float sc = 2.5f;
+    auto panel = ed->createComponentSnapshot (ed->getLocalBounds(), true, sc);
+    const juce::Colour bg (0xff161618), red (0xffff3b2a), print (0xffc9c6bd), dim (0xff8c8a84);
+
+    // tall side image 492 x 942: the துடி emblem and the first pad column, fading into the chassis
+    {
+        const int W = 492, H = 942;
+        juce::Image img (juce::Image::RGB, W, H, true);
+        juce::Graphics g (img);
+        g.fillAll (bg);
+        const float x0 = 22.0f, x1 = 302.0f, y0 = 592.0f;
+        const float k = (float) W / (x1 - x0);
+        const float y1 = y0 + 0.80f * (float) H / k;
+        auto src = juce::Rectangle<int> ((int) (x0 * sc), (int) (y0 * sc), (int) ((x1 - x0) * sc), (int) ((y1 - y0) * sc));
+        g.drawImage (panel, 0, 0, W, (int) ((y1 - y0) * k), src.getX(), src.getY(), src.getWidth(), src.getHeight());
+        const float top = (y1 - y0) * k * 0.55f, bot = (y1 - y0) * k;
+        juce::ColourGradient fade (bg.withAlpha (0.0f), 0, top, bg, 0, bot, false);
+        g.setGradientFill (fade); g.fillRect (0.0f, top, (float) W, (float) H - top);
+        juce::ColourGradient glow (red.withAlpha (0.10f), W * 0.5f, (float) H, red.withAlpha (0.0f), W * 0.5f, H * 0.62f, true);
+        g.setGradientFill (glow); g.fillRect (0, 0, W, H);
+        auto line = [&] (const juce::String& t, float y, juce::Font f, juce::Colour c)
+        { g.setFont (f); g.setColour (c); g.drawText (t, juce::Rectangle<float> (0, y, (float) W, f.getHeight() * 1.3f), juce::Justification::centred); };
+        line ("D R U M   S Y N T H E S I Z E R", H * 0.845f, thudi::assets::labelFont (25.0f), print);
+        line (juce::String (juce::CharPointer_UTF8 ("Thudi v1  \xc2\xb7  by R4N")), H * 0.895f, thudi::assets::labelFontMedium (28.0f), dim);
+        line (juce::String (juce::CharPointer_UTF8 ("V S T 3  \xc2\xb7  6 4 - B I T")), H * 0.94f, thudi::assets::labelFont (21.0f), dim.darker (0.35f));
+        writePng (img, dir.getChildFile ("wizard.png"));
+    }
+    // corner badge 174 x 174: the red MASTER knob in a round window
+    {
+        const int px = 174; const float cx = 100.0f, cy = 118.0f, r = 70.0f;
+        juce::Image img (juce::Image::RGB, px, px, true);
+        juce::Graphics g (img);
+        g.fillAll (bg);
+        juce::Path clip; clip.addEllipse (2.0f, 2.0f, px - 4.0f, px - 4.0f);
+        g.reduceClipRegion (clip);
+        g.drawImage (panel, 0, 0, px, px, (int) ((cx - r) * sc), (int) ((cy - r) * sc), (int) (2 * r * sc), (int) (2 * r * sc));
+        writePng (img, dir.getChildFile ("wizard-small.png"));
+    }
+    writeIco (dir.getChildFile ("thudi.ico"));
+    writePng (iconImage (256), dir.getChildFile ("thudi-icon-256.png"));
+    std::cout << "wizard art written to " << dir.getFullPathName() << std::endl;
+    ed.reset();
+    return 0;
+}
+
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
+    if (argc > 2 && juce::String (argv[1]) == "--wizard-art")
+        return makeWizardArt (juce::File (juce::String (argv[2])));
     juce::File out (argc > 1 ? juce::String (argv[1]) : juce::File::getCurrentWorkingDirectory().getFullPathName());
     out.createDirectory();
 
