@@ -55,7 +55,7 @@ def reset():
     world.use_nodes = True
     bg = world.node_tree.nodes["Background"]
     bg.inputs[0].default_value = (0.05, 0.05, 0.055, 1)
-    bg.inputs[1].default_value = 0.35
+    bg.inputs[1].default_value = 0.15
     return sc
 
 
@@ -141,9 +141,18 @@ def apply_all(ob):
     ob.select_set(False)
 
 
-def cylinder(name, cx, cy, r, z0, z1, mat=None, verts=96, rim=0.0):
+def cylinder(name, cx, cy, r, z0, z1, mat=None, verts=96, rim=0.0, r_top=None, ribs=0):
+    """cylinder / frustum (r_top) with optional vertical ribs (knurling) on the side"""
     bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=verts, radius1=r * S, radius2=r * S, depth=(z1 - z0))
+    rt = r if r_top is None else r_top
+    segs = ribs * 2 if ribs else verts
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=segs, radius1=r * S, radius2=rt * S, depth=(z1 - z0))
+    if ribs:
+        for v in bm.verts:
+            a = math.atan2(v.co.y, v.co.x)
+            k = int(round(a / (2 * math.pi) * segs)) % segs
+            if k % 2:
+                v.co.x *= 0.965; v.co.y *= 0.965
     for v in bm.verts:
         v.co.x += cx * S
         v.co.y += -cy * S
@@ -213,9 +222,9 @@ def lights(cx, cy, span):
         lo.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
         return lo
     k = span * S
-    area("key", (cx * S - 0.9 * k, -cy * S + 1.1 * k, 1.6 * k), 50 * k * k, 1.2 * k, (1.0, 0.97, 0.93))
-    area("fill", (cx * S + 1.2 * k, -cy * S + 0.2 * k, 1.2 * k), 14 * k * k, 1.5 * k, (0.85, 0.9, 1.0))
-    area("rim", (cx * S + 0.1 * k, -cy * S - 1.4 * k, 0.6 * k), 8 * k * k, 0.8 * k, (1.0, 1.0, 1.0))
+    area("key", (cx * S - 0.8 * k, -cy * S + 0.9 * k, 0.75 * k), 16 * k * k, 0.35 * k, (1.0, 0.96, 0.9))
+    area("fill", (cx * S + 1.1 * k, -cy * S + 0.3 * k, 1.4 * k), 4 * k * k, 1.6 * k, (0.82, 0.88, 1.0))
+    area("top", (cx * S, -cy * S, 2.5 * k), 3 * k * k, 2.0 * k, (1.0, 1.0, 1.0))
 
 
 def render(path):
@@ -226,7 +235,7 @@ def render(path):
 
 # ------------------------------------------------------------------ materials
 def body_material():
-    return material("body", (0.016, 0.016, 0.018), rough=0.42, coat=0.25, bump=("noise", 900.0, 0.04), spec=0.45)
+    return material("body", (0.022, 0.022, 0.024), rough=0.62, coat=0.0, bump=("noise", 900.0, 0.05), spec=0.35)
 
 
 def engraving_materials():
@@ -372,7 +381,7 @@ def emblem(box):
     ob = bpy.data.objects.new("emblem", cu)
     bpy.context.scene.collection.objects.link(ob)
     ob.location.z = 0.0135
-    metal = material("emblem_metal", (0.70, 0.70, 0.72), rough=0.26, metal=1.0, aniso=0.7, bump=("noise", 1400.0, 0.03))
+    metal = material("emblem_metal", (0.72, 0.72, 0.74), rough=0.34, metal=1.0, bump=("noise", 1400.0, 0.03))
     ob.data.materials.append(metal)
     return ob
 
@@ -424,11 +433,7 @@ def build_panel():
     rounded_box("glass", gx - 3, gy - 3, gw + 6, gh + 6, -0.012, 0.0, radius=4, mat=glass_mat)
 
     # knob collars (thin metal rings under the knobs)
-    kx, ky, kr = LAY["masterKnob"]; cylinder("collar", kx, ky, kr + 7, -0.002, 0.004, collar, rim=0.6)
-    kx, ky, kr = LAY["driveKnob"]; cylinder("collar", kx, ky, kr + 6, -0.002, 0.004, collar, rim=0.6)
     pk = LAY["pageKnobs"]
-    for i in range(pk["n"]):
-        cylinder("collar", pk["x0"] + i * pk["dx"], pk["y"], pk["r"] + 5, -0.002, 0.004, collar, rim=0.6)
 
     # brass plaque with 4 screws
     px, py, pw, ph = LAY["plaque"]
@@ -451,7 +456,7 @@ def build_panel():
         x, y, w, h = pad_rect(i)
         ex(x - 10, y - pl["labelH"] - 2, w + 20, h + pl["labelH"] + 12, 0)
     ex(*LAY["logo"], m=4)
-    ornaments(0.0, excl, gloss, silver)
+    # (no vine ornaments: the panel stays clean, like the hardware)
 
     camera(W / 2, H / 2, W, H, W * SCALE, H * SCALE)
     lights(W / 2, H / 2, max(W, H))
@@ -475,9 +480,9 @@ def build_pad(pressed):
     size = LAY["pads"]["size"]
     frame = size * 1.2
     element_scene(0, 0, frame, frame * SCALE)
-    rubber = material("rubber", (0.30, 0.30, 0.29) if not pressed else (0.25, 0.25, 0.245), rough=0.78, bump=("noise", 350.0, 0.12), spec=0.3)
-    z1 = 0.10 if not pressed else 0.065
-    pad = rounded_box("pad", -size / 2, -size / 2, size, size, 0.0, z1, radius=3.5, rim=3.0, mat=rubber)
+    rubber = material("rubber", (0.105, 0.105, 0.10) if not pressed else (0.085, 0.085, 0.082), rough=0.86, bump=("noise", 350.0, 0.10), spec=0.25)
+    z1 = 0.16 if not pressed else 0.10
+    pad = rounded_box("pad", -size / 2, -size / 2, size, size, 0.0, z1, radius=4.0, rim=9.0, mat=rubber)
     # very slight dish in the middle of the pad top
     render(os.path.join(OUT, "pad_down.png" if pressed else "pad_up.png"))
 
@@ -486,31 +491,33 @@ def build_knob(red):
     D = 60.0
     frame = D * 1.25
     element_scene(0, 0, frame, 256 if not QUICK else 64)
-    skirt_mat = material("skirt", (0.012, 0.012, 0.013), rough=0.45, bump=("bands", 260.0, 0.25))
-    cap_col = (0.55, 0.05, 0.035) if red else (0.03, 0.03, 0.032)
-    cap_mat = material("cap", cap_col, rough=0.32, coat=0.4)
-    ring = material("ring", (0.75, 0.75, 0.77), rough=0.22, metal=1.0)
-    cylinder("skirt", 0, 0, D / 2, 0.0, 0.10, skirt_mat, verts=128, rim=1.5)
-    cylinder("ring", 0, 0, D / 2 * 0.80, 0.10, 0.108, ring, verts=128, rim=0.6)
-    cylinder("cap", 0, 0, D / 2 * 0.74, 0.10, 0.20, cap_mat, verts=128, rim=3.5)
+    skirt_mat = material("skirt", (0.018, 0.018, 0.019), rough=0.5)
+    cap_col = (0.30, 0.025, 0.018) if red else (0.028, 0.028, 0.03)
+    cap_mat = material("cap", cap_col, rough=0.42, spec=0.4)
+    cylinder("skirt", 0, 0, D / 2, 0.0, 0.16, skirt_mat, r_top=D / 2 * 0.90, ribs=60, rim=0.8)
+    cylinder("cap", 0, 0, D / 2 * 0.70, 0.16, 0.26, cap_mat, verts=128, r_top=D / 2 * 0.64, rim=2.2)
     render(os.path.join(OUT, "knob_red.png" if red else "knob_black.png"))
 
 
 def build_wheel():
     D = LAY["wheel"][2] * 2
     element_scene(0, 0, D, 256 if not QUICK else 64, catcher=False)
-    alu = material("alu", (0.78, 0.78, 0.80), rough=0.22, metal=1.0, aniso=0.8, bump=("rings", 120.0, 0.03))
-    knurl = material("knurl", (0.55, 0.55, 0.57), rough=0.35, metal=1.0, bump=("bands", 900.0, 0.4))
-    cylinder("wheelrim", 0, 0, D / 2, 0.0, 0.12, knurl, verts=192, rim=1.0)
-    top = cylinder("wheeltop", 0, 0, D / 2 * 0.90, 0.0, 0.14, alu, verts=192, rim=2.0)
+    alu = material("alu", (0.62, 0.62, 0.64), rough=0.42, metal=1.0, bump=("noise", 700.0, 0.04))
+    knurl = material("knurl", (0.45, 0.45, 0.47), rough=0.45, metal=1.0)
+    cylinder("wheelrim", 0, 0, D / 2, 0.0, 0.14, knurl, r_top=D / 2 * 0.95, ribs=90, rim=0.6)
+    top = cylinder("wheeltop", 0, 0, D / 2 * 0.93, 0.0, 0.17, alu, verts=192, r_top=D / 2 * 0.88, rim=2.5)
+    apply_all(top)
     dimple = bpy.data.objects.new("dimple", bpy.data.meshes.new("dimple"))
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=48, v_segments=24, radius=11 * S)
+    bmesh.ops.create_uvsphere(bm, u_segments=48, v_segments=24, radius=12 * S)
     for v in bm.verts:
-        v.co += Vector((D / 2 * 0.52 * S, 0, 0.14 + 11 * S * 0.75))
+        v.co += Vector((D / 2 * 0.50 * S, 0, 0.17 + 12 * S * 0.80))
     bm.to_mesh(dimple.data); bm.free()
     bpy.context.scene.collection.objects.link(dimple)
     boolean_cut(top, [dimple])
+    apply_all(top)
+    for p in top.data.polygons:
+        p.use_smooth = True
     render(os.path.join(OUT, "wheel.png"))
 
 
@@ -518,10 +525,13 @@ def build_button(down):
     w, h = 128.0, 32.0
     sc = reset()
     sc.render.film_transparent = True
-    camera(0, 0, w, h, 256 if not QUICK else 64, 64 if not QUICK else 16)
+    m = 8.0  # margin for the cast shadow (the plugin expands the image by the same amount)
+    catcher = rounded_box("catcher", -w, -h * 2, 2 * w, 4 * h, -0.01, 0.0, radius=0)
+    catcher.is_shadow_catcher = True
+    camera(0, 0, w + 2 * m, h + 2 * m, (w + 2 * m) * 2 if not QUICK else 36, (h + 2 * m) * 2 if not QUICK else 12)
     lights(0, 0, 940)
-    rubber = material("btn", (0.48, 0.48, 0.46) if not down else (0.36, 0.36, 0.345), rough=0.6, bump=("noise", 500.0, 0.06))
-    rounded_box("button", -w / 2 + 1, -h / 2 + 1, w - 2, h - 2, 0.0, 0.05 if not down else 0.03, radius=3, rim=2.5, mat=rubber)
+    rubber = material("btn", (0.20, 0.20, 0.195) if not down else (0.16, 0.16, 0.155), rough=0.7, bump=("noise", 500.0, 0.05))
+    rounded_box("button", -w / 2 + 1, -h / 2 + 1, w - 2, h - 2, 0.0, 0.05 if not down else 0.03, radius=4, rim=5.0, mat=rubber)
     render(os.path.join(OUT, "button_down.png" if down else "button_up.png"))
 
 

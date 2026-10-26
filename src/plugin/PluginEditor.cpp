@@ -209,6 +209,8 @@ ThudiEditor::ThudiEditor (ThudiProcessor& p)
         pageKnobs[(size_t) i].onDragStart = [this, i] { lcd.focus = i; lcd.repaint(); };
     }
 
+    for (auto* b : { &osButton, &enterButton }) b->setPaintingIsUnclipped (true);
+    for (auto& b : softKeys) b.setPaintingIsUnclipped (true);
     content.addAndMakeVisible (osButton);
     osButton.setBounds (L::osButton().toNearestInt());
     osButton.onClick = [this]

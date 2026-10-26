@@ -10,6 +10,15 @@ namespace thudi
 PadComponent::PadComponent (ThudiProcessor& p, int i) : proc (p), index (i)
 {
     setRepaintsOnMouseActivity (false);
+    setPaintingIsUnclipped (true); // the rendered pad carries its cast shadow outside the pad area
+}
+
+void PadComponent::repaintWithShadow()
+{
+    if (auto* parent = getParentComponent())
+        parent->repaint (getBounds().expanded (getWidth() / 8));
+    else
+        repaint();
 }
 
 void PadComponent::paint (juce::Graphics& g)
@@ -42,7 +51,7 @@ void PadComponent::mouseDown (const juce::MouseEvent& e)
     if (e.mods.isPopupMenu()) { if (onSelect) onSelect (index); showMenu(); return; }
     // velocity from vertical position: top edge = hardest hit
     const float v = juce::jlimit (0.25f, 1.0f, 1.05f - 0.75f * (float) e.y / (float) juce::jmax (1, getHeight()));
-    pressed = true; repaint();
+    pressed = true; repaintWithShadow();
     proc.hitPad (index, v);
     if (onSelect) onSelect (index);
 }
@@ -50,7 +59,7 @@ void PadComponent::mouseDown (const juce::MouseEvent& e)
 void PadComponent::mouseUp (const juce::MouseEvent& e)
 {
     if (e.mods.isPopupMenu()) return;
-    pressed = false; repaint();
+    pressed = false; repaintWithShadow();
     proc.releasePadFromUi (index);
 }
 

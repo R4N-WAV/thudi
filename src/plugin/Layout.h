@@ -39,5 +39,5 @@ inline juce::Rectangle<float> pad (int index)
 inline juce::Rectangle<float> padLabel (int index) { auto p = pad (index); return { p.getX(), p.getY() - padLabelH, p.getWidth(), padLabelH - 5.0f }; }
 inline juce::Point<float> padLed (int index) { auto p = pad (index); return { p.getRight() - 5.0f, p.getY() - padLabelH + 6.0f }; }
 
-inline juce::Rectangle<float> logo() { return { 34.0f, 526.0f, 150.0f, 560.0f }; }
+inline juce::Rectangle<float> logo() { return { 34.0f, 580.0f, 150.0f, 450.0f }; }
 } // namespace thudi::layout

@@ -25,6 +25,7 @@ private:
     ThudiProcessor& proc;
     const int index;
     bool pressed = false;
+    void repaintWithShadow();
     void showMenu();
 };
 } // namespace thudi

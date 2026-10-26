@@ -176,6 +176,8 @@ struct PadSound
 inline float toNormalised (const ParamInfo& pi, float x)
 {
     x = std::fmin (pi.max, std::fmax (pi.min, x));
+    if (pi.scale == Scale::Log && pi.min <= 0.0f)        // log-like range starting at 0 (e.g. glide): cubic taper
+        return std::cbrt ((x - pi.min) / (pi.max - pi.min));
     if (pi.scale == Scale::Log)
         return std::log (x / pi.min) / std::log (pi.max / pi.min);
     return (x - pi.min) / (pi.max - pi.min);
@@ -183,8 +185,10 @@ inline float toNormalised (const ParamInfo& pi, float x)
 inline float fromNormalised (const ParamInfo& pi, float n)
 {
     n = std::fmin (1.0f, std::fmax (0.0f, n));
-    float x = pi.scale == Scale::Log ? pi.min * std::pow (pi.max / pi.min, n)
-                                     : pi.min + n * (pi.max - pi.min);
+    float x;
+    if (pi.scale == Scale::Log && pi.min <= 0.0f) x = pi.min + n * n * n * (pi.max - pi.min);
+    else if (pi.scale == Scale::Log)              x = pi.min * std::pow (pi.max / pi.min, n);
+    else                                          x = pi.min + n * (pi.max - pi.min);
     if (pi.scale == Scale::Int || pi.scale == Scale::Choice) x = std::round (x);
     return x;
 }

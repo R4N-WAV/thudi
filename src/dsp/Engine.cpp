@@ -14,6 +14,7 @@ Engine::Engine()
 void Engine::prepare (double sampleRate, int maxBlockSize, int oversamplingFactor)
 {
     sr = sampleRate; maxBlock = std::max (16, maxBlockSize); osFactor = oversamplingFactor;
+    seedCounter = 1234; // reproducible renders after every prepare
     mono.assign ((size_t) maxBlock, 0.0f); padL.assign ((size_t) maxBlock, 0.0f); padR.assign ((size_t) maxBlock, 0.0f);
     for (int i = 0; i < kNumPads; ++i)
     {

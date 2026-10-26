@@ -92,8 +92,8 @@ void ThudiLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& b,
     auto r = b.getLocalBounds().toFloat();
     auto img = assets::image (down ? "button_down.png" : "button_up.png");
     if (img.isValid())
-    {
-        g.drawImage (img, r, juce::RectanglePlacement::stretchToFit);
+    {   // renders carry an 8-unit shadow margin around a 128x32 key
+        g.drawImage (img, r.expanded (r.getWidth() * 8.0f / 128.0f, r.getHeight() * 8.0f / 32.0f), juce::RectanglePlacement::stretchToFit);
     }
     else
     {

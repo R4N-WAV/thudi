@@ -134,6 +134,8 @@ int main (int argc, char** argv)
     // ---------- plugin-path render of the test pattern (compare with thudi_render in CI)
     if (argc > 2)
     {
+        proc->presets->loadDefaultKit();
+        out.getChildFile ("plugin_loaded_rhyno.thudikit").replaceWithText (proc->presets->kitToJson());
         juce::StringArray lines; lines.addLines (juce::File (juce::String (argv[2])).loadFileAsString());
         double bpm = 88; int steps = 32;
         struct Ev { int sample; int note; bool on; float vel; };
@@ -166,11 +168,13 @@ int main (int argc, char** argv)
             const int n = juce::jmin (512, total - pos);
             all.copyFrom (0, pos, buf, 0, 0, n); all.copyFrom (1, pos, buf, 1, 0, n);
         }
+        const float peakAll = all.getMagnitude (0, total);
         auto wavFile = out.getChildFile ("plugin_rhyno_pattern.wav");
+        juce::AudioBuffer<float> norm (all); if (peakAll > 0) norm.applyGain (0.9f / peakAll); // no clipping in the 24-bit test file
         wavFile.deleteFile();
         juce::WavAudioFormat wav;
         std::unique_ptr<juce::AudioFormatWriter> w (wav.createWriterFor (new juce::FileOutputStream (wavFile), 48000.0, 2, 24, {}, 0));
-        if (w) w->writeFromAudioSampleBuffer (all, 0, total);
+        if (w) w->writeFromAudioSampleBuffer (norm, 0, total);
         check (all.getMagnitude (0, total) > 0.05f, "plugin renders the RHYNO pattern (peak " + juce::String (all.getMagnitude (0, total), 2) + ")");
     }
 
