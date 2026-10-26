@@ -157,9 +157,34 @@ static int makeWizardArt (const juce::File& dir)
     return 0;
 }
 
+static int makeSiteShots (const juce::File& dir)
+{
+    dir.createDirectory();
+    auto proc = std::make_unique<ThudiProcessor>();
+    std::unique_ptr<juce::AudioProcessorEditor> ed (proc->createEditor());
+    auto* te = dynamic_cast<ThudiEditor*> (ed.get());
+    ed->setSize (940, 1210);
+    auto jpg = [&] (const juce::String& name, juce::Rectangle<int> area = {})
+    {
+        auto img = ed->createComponentSnapshot (area.isEmpty() ? ed->getLocalBounds() : area, true, 2.0f);
+        auto f = dir.getChildFile (name); f.deleteFile();
+        juce::FileOutputStream os (f); juce::JPEGImageFormat j; j.setQuality (0.9f); j.writeImageToStream (img, os);
+    };
+    te->selectPad (0); te->setPage (0);   jpg ("panel.jpg");
+    const juce::Rectangle<int> top (0, 18, 940, 588);   // 16:10 crop: display, knobs, first pad row
+    te->selectPad (1); te->setPage (1);   jpg ("808.jpg", top);
+    te->getLcd().mode = LcdDisplay::Mode::Browse; te->getLcd().browse = LcdDisplay::Browse::Kits; te->getLcd().refreshEntries();
+    jpg ("kits.jpg", top);
+    ed.reset();
+    std::cout << "site shots written to " << dir.getFullPathName() << std::endl;
+    return 0;
+}
+
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
+    if (argc > 2 && juce::String (argv[1]) == "--site-shots")
+        return makeSiteShots (juce::File (juce::String (argv[2])));
     if (argc > 2 && juce::String (argv[1]) == "--wizard-art")
         return makeWizardArt (juce::File (juce::String (argv[2])));
     juce::File out (argc > 1 ? juce::String (argv[1]) : juce::File::getCurrentWorkingDirectory().getFullPathName());
