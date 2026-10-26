@@ -1,0 +1,60 @@
+name: Build Thudi (Windows VST3)
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - "art/**"
+      - "**.md"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python tools
+        run: pip install numpy scipy
+
+      - name: Configure
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build plugin, tests and tools
+        run: cmake --build build --config Release --parallel --target Thudi_VST3 thudi_snapshot thudi_render
+
+      - name: Headless plugin checks + GUI screenshots
+        shell: bash
+        run: |
+          mkdir -p out
+          ./build/thudi_snapshot_artefacts/Release/thudi_snapshot.exe out tests/rhyno_pattern.txt
+
+      - name: RHYNO kit vs reference measurements
+        shell: bash
+        run: |
+          ./build/Release/thudi_render.exe presets/factory/kits/RHYNO.thudikit tests/rhyno_pattern.txt out/engine_rhyno_pattern.wav 48000 2
+          python tools/rhyno_metrics.py compare out/engine_rhyno_pattern.wav tests/rhyno_targets.json
+          python tools/rhyno_metrics.py compare out/plugin_rhyno_pattern.wav tests/rhyno_targets.json
+
+      - name: Package VST3
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path package | Out-Null
+          Copy-Item -Recurse build/Thudi_artefacts/Release/VST3/Thudi.vst3 package/
+          Copy-Item INSTALL.md package/
+          Compress-Archive -Path package/* -DestinationPath Thudi-VST3-Windows.zip -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Thudi-VST3-Windows
+          path: Thudi-VST3-Windows.zip
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thudi-checks
+          path: out/

@@ -1,0 +1,9 @@
+build/
+build-*/
+out/
+*.wav
+!tests/*.wav
+.DS_Store
+.vscode/
+.idea/
+__pycache__/

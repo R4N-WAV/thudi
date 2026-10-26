@@ -1,0 +1,28 @@
+{
+ "balance_db": [
+  -2.28,
+  -6.19,
+  -14.1,
+  -17.16,
+  -17.58,
+  -31.57
+ ],
+ "side_mid_db": [
+  -22.72,
+  -9.43,
+  -1.45,
+  -7.06,
+  -5.6,
+  0.03
+ ],
+ "bounce_share": 0.492,
+ "kick_punch_db": -2.06,
+ "hf_flatness": [
+  0.509,
+  0.577,
+  0.607,
+  0.631
+ ],
+ "max_loss": 6.0,
+ "source": "Measured from a 17.6 s excerpt of RHYNO (drums + 808 only), 48 kHz. Audio not included."
+}

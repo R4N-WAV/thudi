@@ -1,0 +1,46 @@
+name: Render UI (Blender)
+
+on:
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: "Cycles samples"
+        default: "96"
+  push:
+    paths:
+      - "art/**"
+      - ".github/workflows/render-ui.yml"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Blender
+        id: cache-blender
+        uses: actions/cache@v4
+        with:
+          path: blender
+          key: blender-4.2.3-linux-x64
+
+      - name: Download Blender 4.2 LTS
+        if: steps.cache-blender.outputs.cache-hit != 'true'
+        run: |
+          curl -L -o blender.tar.xz https://download.blender.org/release/Blender4.2/blender-4.2.3-linux-x64.tar.xz
+          mkdir blender && tar -xf blender.tar.xz -C blender --strip-components=1
+
+      - name: System libraries
+        run: sudo apt-get update && sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
+
+      - name: Render
+        run: |
+          SAMPLES="${{ github.event.inputs.samples || '96' }}"
+          ./blender/blender -b --factory-startup -P art/blender/render_ui.py -- assets/ui "$SAMPLES"
+          ls -la assets/ui
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thudi-ui-renders
+          path: assets/ui/*.png
