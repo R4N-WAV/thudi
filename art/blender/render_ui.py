@@ -132,6 +132,14 @@ def rounded_box(name, x, y, w, h, z0, z1, radius, rim=0.0, mat=None, segs=10):
     return ob
 
 
+def fix_shading(ob):
+    """flat faces stay flat (no smooth-shading streaks across big triangles); only bevels/curves are smoothed"""
+    me = ob.data
+    for p in me.polygons:
+        n = p.normal
+        p.use_smooth = not (abs(n.x) > 0.9995 or abs(n.y) > 0.9995 or abs(n.z) > 0.9995)
+
+
 def apply_all(ob):
     bpy.context.view_layer.objects.active = ob
     ob.select_set(True)
@@ -418,6 +426,7 @@ def build_panel():
     cutters.append(cylinder("wheelwell", wx, wy, wr + 7, -0.04, 0.05))
     boolean_cut(body, cutters)
     apply_all(body)
+    fix_shading(body)
 
     # துடி emblem: raised brushed-metal letters, reading bottom -> top
     emblem(LAY["logo"])
@@ -430,6 +439,7 @@ def build_panel():
     win = rounded_box("bezelwin", gx - 3, gy - 3, gw + 6, gh + 6, -0.02, 0.06, radius=4)
     boolean_cut(bez, [win])
     apply_all(bez)
+    fix_shading(bez)
     rounded_box("glass", gx - 3, gy - 3, gw + 6, gh + 6, -0.012, 0.0, radius=4, mat=glass_mat)
 
     # knob collars (thin metal rings under the knobs)
@@ -480,9 +490,10 @@ def build_pad(pressed):
     size = LAY["pads"]["size"]
     frame = size * 1.2
     element_scene(0, 0, frame, frame * SCALE)
-    rubber = material("rubber", (0.105, 0.105, 0.10) if not pressed else (0.085, 0.085, 0.082), rough=0.86, bump=("noise", 350.0, 0.10), spec=0.25)
+    rubber = material("rubber", (0.17, 0.17, 0.165) if not pressed else (0.14, 0.14, 0.136), rough=0.86, bump=("noise", 350.0, 0.10), spec=0.25)
     z1 = 0.16 if not pressed else 0.10
     pad = rounded_box("pad", -size / 2, -size / 2, size, size, 0.0, z1, radius=4.0, rim=9.0, mat=rubber)
+    apply_all(pad); fix_shading(pad)
     # very slight dish in the middle of the pad top
     render(os.path.join(OUT, "pad_down.png" if pressed else "pad_up.png"))
 
@@ -516,8 +527,7 @@ def build_wheel():
     bpy.context.scene.collection.objects.link(dimple)
     boolean_cut(top, [dimple])
     apply_all(top)
-    for p in top.data.polygons:
-        p.use_smooth = True
+    fix_shading(top)
     render(os.path.join(OUT, "wheel.png"))
 
 
@@ -530,8 +540,9 @@ def build_button(down):
     catcher.is_shadow_catcher = True
     camera(0, 0, w + 2 * m, h + 2 * m, (w + 2 * m) * 2 if not QUICK else 36, (h + 2 * m) * 2 if not QUICK else 12)
     lights(0, 0, 940)
-    rubber = material("btn", (0.20, 0.20, 0.195) if not down else (0.16, 0.16, 0.155), rough=0.7, bump=("noise", 500.0, 0.05))
-    rounded_box("button", -w / 2 + 1, -h / 2 + 1, w - 2, h - 2, 0.0, 0.05 if not down else 0.03, radius=4, rim=5.0, mat=rubber)
+    rubber = material("btn", (0.26, 0.26, 0.25) if not down else (0.21, 0.21, 0.2), rough=0.7, bump=("noise", 500.0, 0.05))
+    btn = rounded_box("button", -w / 2 + 1, -h / 2 + 1, w - 2, h - 2, 0.0, 0.05 if not down else 0.03, radius=4, rim=5.0, mat=rubber)
+    apply_all(btn); fix_shading(btn)
     render(os.path.join(OUT, "button_down.png" if down else "button_up.png"))
 
 
