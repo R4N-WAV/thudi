@@ -1,5 +1,7 @@
 #pragma once
+#include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <map>
 #include "Engine.h"
 #include "ThudiParams.h"
 
@@ -56,6 +58,19 @@ public:
     void hitPad (int pad, float velocity) { engine.queueUiHit (pad, velocity); }
     void releasePadFromUi (int pad) { engine.queueUiRelease (pad); }
     float padActivity (int pad) const { return engine.padActivity[pad].load(); }
+    float padLight (int pad) const { return engine.padLight[pad].load(); }
+    bool soloOn() const { return globalRaw[(size_t) thudi::G::SoloOn]->load() >= 0.5f; }
+    bool gaerroOn() const { return globalRaw[(size_t) thudi::G::Gaerro]->load() >= 0.5f; }
+    juce::String getSoloLabel() const { return meta.getProperty ("soloLabel", "").toString(); }
+    void setSoloLabel (const juce::String& l) { meta.setProperty ("soloLabel", l.toUpperCase().substring (0, 24), nullptr); if (onMetaChanged) onMetaChanged(); }
+
+    // ---- samples (GÆRRO mode chops). slot = pad 0..15, or 16 for the solo sound
+    thudi::SamplePtr loadSampleFile (const juce::File& f, juce::String& error);
+    void setSlotSample (int slot, thudi::SamplePtr s);          // also remembers the path in the kit
+    thudi::SamplePtr getSlotSample (int slot) const { return slotSamples[(size_t) slot]; }
+    int  chopFileOntoPads (const juce::File& f, int numSlices, int firstPad, juce::String& error); // returns slices made
+    void restoreSamplesFromMeta();
+    static juce::File samplesDir();
     int lastHitPad() const { return engine.lastHitPad.load(); }
 
     void startMidiLearn (int pad) { midiLearnPad.store (pad); }
@@ -70,8 +85,11 @@ public:
 
 private:
     thudi::Engine engine;
-    std::array<std::array<juce::RangedAudioParameter*, thudi::kNumPadParams>, thudi::kNumPads> padParams {};
-    std::array<std::array<std::atomic<float>*, thudi::kNumPadParams>, thudi::kNumPads> padRaw {};
+    std::array<std::array<juce::RangedAudioParameter*, thudi::kNumPadParams>, thudi::kNumSlots> padParams {};
+    std::array<std::array<std::atomic<float>*, thudi::kNumPadParams>, thudi::kNumSlots> padRaw {};
+    std::array<thudi::SamplePtr, thudi::kNumSlots> slotSamples {};
+    std::map<juce::String, thudi::SamplePtr> sampleCache;   // path -> decoded audio (kept alive while used)
+    juce::AudioFormatManager formats;
     std::array<juce::RangedAudioParameter*, thudi::kNumGlobalParams> globalParams {};
     std::array<std::atomic<float>*, thudi::kNumGlobalParams> globalRaw {};
 

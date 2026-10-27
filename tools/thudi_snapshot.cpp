@@ -102,9 +102,38 @@ static void writeIco (const juce::File& f)
     f.deleteFile(); f.replaceWithData (o.getData(), o.getDataSize());
 }
 
+static void loadKitNamed (ThudiProcessor& p, const juce::String& name)
+{
+    for (auto& k : p.presets->listKits()) if (k.name == name) { p.presets->loadKit (k); return; }
+}
+
+// a short "drum break" written as a WAV, for the sampler checks (4 hits, 0.25 s apart)
+static juce::File writeTestBreak (const juce::File& dir)
+{
+    const double sr = 44100; const int n = (int) (sr * 1.0);
+    juce::AudioBuffer<float> b (2, n); b.clear();
+    juce::Random rnd (7);
+    for (int hit = 0; hit < 4; ++hit)
+    {
+        const int at = (int) (hit * 0.25 * sr);
+        for (int i = 0; i < (int) (0.2 * sr) && at + i < n; ++i)
+        {
+            const float env = std::exp (-(float) i / (float) (sr * (hit % 2 ? 0.03 : 0.06)));
+            const float v = hit % 2 ? (rnd.nextFloat() * 2 - 1) : std::sin (2.0f * 3.14159f * 60.0f * (float) i / (float) sr);
+            b.setSample (0, at + i, 0.8f * env * v); b.setSample (1, at + i, 0.8f * env * v);
+        }
+    }
+    auto f = dir.getChildFile ("thudi_test_break.wav"); f.deleteFile();
+    juce::WavAudioFormat wav;
+    std::unique_ptr<juce::AudioFormatWriter> w (wav.createWriterFor (new juce::FileOutputStream (f), sr, 2, 16, {}, 0));
+    if (w) w->writeFromAudioSampleBuffer (b, 0, n);
+    return f;
+}
+
 static int makeWizardArt (const juce::File& dir)
 {
     auto proc = std::make_unique<ThudiProcessor>();
+    loadKitNamed (*proc, "RHYNO");
     std::unique_ptr<juce::AudioProcessorEditor> ed (proc->createEditor());
     ed->setSize (940, 1210);
     if (auto* te = dynamic_cast<ThudiEditor*> (ed.get())) te->selectPad (0);
@@ -161,6 +190,8 @@ static int makeSiteShots (const juce::File& dir)
 {
     dir.createDirectory();
     auto proc = std::make_unique<ThudiProcessor>();
+    loadKitNamed (*proc, "RHYNO");
+    proc->prepareToPlay (48000.0, 512);
     std::unique_ptr<juce::AudioProcessorEditor> ed (proc->createEditor());
     auto* te = dynamic_cast<ThudiEditor*> (ed.get());
     ed->setSize (940, 1210);
@@ -175,6 +206,12 @@ static int makeSiteShots (const juce::File& dir)
     te->selectPad (1); te->setPage (1);   jpg ("808.jpg", top);
     te->getLcd().mode = LcdDisplay::Mode::Browse; te->getLcd().browse = LcdDisplay::Browse::Kits; te->getLcd().refreshEntries();
     jpg ("kits.jpg", top);
+    te->getLcd().mode = LcdDisplay::Mode::Edit;
+    te->setSolo (true); te->getLcd().message.clear(); te->setPage (0);
+    jpg ("solo.jpg");
+    te->setSolo (false);
+    te->revealGaerroButton (false); te->setGaerro (true, false); te->finishAnimations(); te->getLcd().message.clear();
+    jpg ("gaerro.jpg");
     ed.reset();
     std::cout << "site shots written to " << dir.getFullPathName() << std::endl;
     return 0;
@@ -196,15 +233,25 @@ int main (int argc, char** argv)
 
     // ---------- presets
     auto kits = proc->presets->listKits();
-    check (! kits.empty(), "factory kits embedded (" + juce::String ((int) kits.size()) + ")");
-    check (proc->getKitName() == "RHYNO", "default kit is RHYNO (got " + proc->getKitName() + ")");
+    check (kits.size() >= 10, "factory kits embedded (" + juce::String ((int) kits.size()) + ")");
+    check (proc->getKitName() == "Init", "plugin starts with the empty Init kit (got " + proc->getKitName() + ")");
+    {
+        bool allEmpty = true;
+        for (int pad = 0; pad < kNumPads; ++pad) allEmpty &= (int) std::round (proc->padValue (pad, P::Model)) == (int) Model::Empty;
+        float peak = 0; renderNote (*proc, 36, 0.5f, &peak);
+        check (allEmpty && peak == 0.0f, "Init kit: every pad is empty and silent");
+    }
     auto padPresets = proc->presets->listPads();
     check (padPresets.size() >= 16, "factory pad presets embedded (" + juce::String ((int) padPresets.size()) + ")");
 
     // ---------- every pad of every kit makes sound
     for (auto& k : kits)
     {
+        if (k.name == "Init") continue;
         proc->presets->loadKit (k);
+        int n808 = 0;
+        for (int pad = 0; pad < kNumPads; ++pad) n808 += (int) std::round (proc->padValue (pad, P::Model)) == (int) Model::Bass808;
+        check (n808 <= 1, "kit " + k.name + ": one 808 pad (" + juce::String (n808) + ")");
         int silent = 0; float maxPeak = 0;
         for (int pad = 0; pad < kNumPads; ++pad)
         {
@@ -218,7 +265,7 @@ int main (int argc, char** argv)
         check (silent == 0, "kit " + k.name + ": all 16 pads sound (silent: " + juce::String (silent) + ", max peak " + juce::String (maxPeak, 2) + ")");
         check (maxPeak < 4.0f, "kit " + k.name + ": no runaway levels");
     }
-    proc->presets->loadDefaultKit();
+    loadKitNamed (*proc, "RHYNO");
 
     // ---------- pad actions
     {
@@ -251,9 +298,62 @@ int main (int argc, char** argv)
         check (renderNote (*proc, proc->getPadNote (12), 1.0f) >= 0.0f, "randomized pad renders finite audio");
     }
 
+    // ---------- SOLO mode: one sound from the library on every note
+    {
+        loadKitNamed (*proc, "RHYNO");
+        auto bass = proc->presets->listPads ("808");
+        bool loaded = false;
+        for (auto& e : bass) if (e.name == "Solo Glide 808") loaded = proc->presets->loadPad (kSoloSlot, e);
+        check (loaded && proc->getSoloLabel() == "GLIDE 808", "solo sound chosen from the library (" + proc->getSoloLabel() + ")");
+        proc->setGlobalValue (G::SoloOn, 1.0f);
+        proc->releaseResources(); proc->prepareToPlay (48000.0, 512);
+        float p1 = 0, p2 = 0;
+        renderNote (*proc, 29, 0.6f, &p1);
+        renderNote (*proc, 77, 0.6f, &p2);
+        check (p1 > 0.01f && p2 > 0.01f, "solo mode: low and high notes both play the solo sound");
+        check (proc->presets->saveKit ("ThudiSelfTest Solo"), "save kit with a solo sound");
+        proc->presets->initKit();
+        bool back = false;
+        for (auto& e : proc->presets->listKits()) if (e.name == "ThudiSelfTest Solo") { back = proc->presets->loadKit (e); e.file.deleteFile(); }
+        check (back && proc->soloOn() && proc->getSoloLabel() == "GLIDE 808", "kit file brings back solo mode and its sound");
+        proc->setGlobalValue (G::SoloOn, 0.0f);
+    }
+
+    // ---------- GÆRRO sampler: chop a break across pads, save/load as a kit
+    {
+        auto wav = writeTestBreak (out);
+        proc->presets->initKit();
+        proc->setGlobalValue (G::Gaerro, 1.0f);
+        juce::String err;
+        const int made = proc->chopFileOntoPads (wav, 4, 0, err);
+        check (made == 4, "chop a break into 4 pads (" + juce::String (made) + ") " + err);
+        float sMin = 1e9f, sMax = 0;
+        for (int pad = 0; pad < 4; ++pad)
+        {
+            proc->releaseResources(); proc->prepareToPlay (48000.0, 512);
+            float pk = 0; renderNote (*proc, proc->getPadNote (pad), 0.3f, &pk);
+            sMin = juce::jmin (sMin, pk); sMax = juce::jmax (sMax, pk);
+        }
+        check (sMin > 0.01f && sMax < 4.0f, "every chop plays (peak " + juce::String (sMin, 3) + ".." + juce::String (sMax, 2) + ")");
+        const float st = proc->padValue (1, P::SmpStart);
+        check (std::abs (st - 0.25f) < 0.03f, "chop 2 starts at the 2nd hit (" + juce::String (st, 3) + ")");
+        check (ThudiProcessor::samplesDir().getChildFile (wav.getFileName()).existsAsFile(), "dropped file is copied to the Samples folder");
+        check (proc->presets->saveKit ("ThudiSelfTest Chops"), "save chopped kit");
+        juce::MemoryBlock mb; proc->getStateInformation (mb);
+        proc->presets->initKit();
+        bool back = false;
+        for (auto& e : proc->presets->listKits()) if (e.name == "ThudiSelfTest Chops") { back = proc->presets->loadKit (e); e.file.deleteFile(); }
+        check (back && proc->getSlotSample (2) != nullptr && proc->getPadLabel (2) == "CHOP 3", "chopped kit reloads its sample");
+        auto p2 = std::make_unique<ThudiProcessor>();
+        p2->setStateInformation (mb.getData(), (int) mb.getSize());
+        check (p2->getSlotSample (0) != nullptr && p2->gaerroOn(), "project state restores samples and GÆRRO mode");
+        proc->setGlobalValue (G::Gaerro, 0.0f);
+        ThudiProcessor::samplesDir().getChildFile (wav.getFileName()).deleteFile();
+    }
+
     // ---------- state round trip
     {
-        proc->presets->loadDefaultKit();
+        loadKitNamed (*proc, "RHYNO");
         proc->setPadLabel (7, "ROUNDTRIP");
         proc->setPadNote (7, 60);
         juce::MemoryBlock mb; proc->getStateInformation (mb);
@@ -262,16 +362,20 @@ int main (int argc, char** argv)
         bool same = true;
         for (int pad = 0; pad < kNumPads; ++pad)
             for (int k = 0; k < kNumPadParams; ++k)
-                if (std::abs (proc->padValue (pad, (P) k) - p2->padValue (pad, (P) k)) > 1e-4f) same = false;
+                if (std::abs (proc->padValue (pad, (P) k) - p2->padValue (pad, (P) k)) > 1e-5f * juce::jmax (10.0f, std::abs (proc->padValue (pad, (P) k))))
+                {
+                    if (same) std::cout << "    first diff: pad " << pad << " " << info ((P) k).id << " " << proc->padValue (pad, (P) k) << " vs " << p2->padValue (pad, (P) k) << std::endl;
+                    same = false;
+                }
         check (same, "state restores all pad parameters");
         check (p2->getPadLabel (7) == "ROUNDTRIP" && p2->getPadNote (7) == 60, "state restores labels and notes");
-        proc->presets->loadDefaultKit();
+        loadKitNamed (*proc, "RHYNO");
     }
 
     // ---------- plugin-path render of the test pattern (compare with thudi_render in CI)
     if (argc > 2)
     {
-        proc->presets->loadDefaultKit();
+        loadKitNamed (*proc, "RHYNO");
         out.getChildFile ("plugin_loaded_rhyno.thudikit").replaceWithText (proc->presets->kitToJson());
         juce::StringArray lines; lines.addLines (juce::File (juce::String (argv[2])).loadFileAsString());
         double bpm = 88; int steps = 32;
@@ -323,7 +427,24 @@ int main (int argc, char** argv)
         if (te != nullptr)
         {
             te->setSize (940, 1210);
+            loadKitNamed (*proc, "RHYNO");
             te->selectPad (0);
+            // pad glow: hit pads 1, 3 and 6, run audio a little, then one UI frame
+            proc->releaseResources(); proc->prepareToPlay (48000.0, 512);
+            proc->hitPad (0, 1.0f); proc->hitPad (2, 0.8f); proc->hitPad (5, 1.0f);
+            {
+                juce::AudioBuffer<float> buf (proc->getTotalNumOutputChannels(), 512); juce::MidiBuffer midi;
+                for (int b = 0; b < 2; ++b) proc->processBlock (buf, midi);
+            }
+            te->tick();
+            check (proc->padLight (0) > 0.2f && proc->padLight (15) == 0.0f, "hit pads light up, others stay dark ("
+                   + juce::String (proc->padLight (0), 2) + ", " + juce::String (proc->padLight (15), 2) + ")");
+            snapshot (*te, out.getChildFile ("thudi_gui_glow.png"), 1.0f);
+            {
+                juce::AudioBuffer<float> buf (proc->getTotalNumOutputChannels(), 512); juce::MidiBuffer midi;
+                for (int b = 0; b < 400; ++b) proc->processBlock (buf, midi);
+            }
+            te->tick();
             snapshot (*te, out.getChildFile ("thudi_gui_kick.png"), 1.0f);
             te->selectPad (1); te->setPage (1);
             snapshot (*te, out.getChildFile ("thudi_gui_808_env.png"), 1.0f);
@@ -331,7 +452,27 @@ int main (int argc, char** argv)
             snapshot (*te, out.getChildFile ("thudi_gui_hat.png"), 1.0f);
             te->getLcd().mode = LcdDisplay::Mode::Browse; te->getLcd().browse = LcdDisplay::Browse::Pads; te->getLcd().refreshEntries();
             snapshot (*te, out.getChildFile ("thudi_gui_browser.png"), 1.0f);
+            te->getLcd().mode = LcdDisplay::Mode::Browse; te->getLcd().browse = LcdDisplay::Browse::Kits; te->getLcd().refreshEntries();
+            snapshot (*te, out.getChildFile ("thudi_gui_kits.png"), 1.0f);
+            te->getLcd().mode = LcdDisplay::Mode::Edit;
+            te->setSolo (true); te->getLcd().message.clear();
+            snapshot (*te, out.getChildFile ("thudi_gui_solo.png"), 1.0f);
+            te->setSolo (false);
+            // GÆRRO: reveal the key, switch on; mid-animation frame + end state
+            te->revealGaerroButton (false);
+            te->setGaerro (true, true);
+            te->getLcd().setSmokeTime (1.3f);
+            snapshot (*te, out.getChildFile ("thudi_gui_gaerro_loading.png"), 1.0f);
+            te->finishAnimations();
+            juce::String err;
+            proc->chopFileOntoPads (writeTestBreak (out), 8, 0, err);
+            te->selectPad (1); te->setPage (0); te->getLcd().message.clear();
+            snapshot (*te, out.getChildFile ("thudi_gui_gaerro.png"), 1.0f);
+            te->setGaerro (false, false);
+            proc->presets->initKit(); te->selectPad (0);
+            snapshot (*te, out.getChildFile ("thudi_gui_init.png"), 1.0f);
             te->setSize (677, 871);
+            loadKitNamed (*proc, "RHYNO");
             te->getLcd().mode = LcdDisplay::Mode::Edit; te->selectPad (1); te->setPage (2);
             snapshot (*te, out.getChildFile ("thudi_gui_default_size.png"), 1.0f);
         }

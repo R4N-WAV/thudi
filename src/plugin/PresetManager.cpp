@@ -46,14 +46,20 @@ juce::String PresetManager::readEntry (const Entry& e) const
 std::vector<PresetManager::Entry> PresetManager::listKits() const
 {
     std::vector<Entry> out;
+    out.push_back ({ "Init", {}, true, {}, "__init__" });
     for (int i = 0; i < ThudiBinary::namedResourceListSize; ++i)
     {
         juce::String fn (ThudiBinary::originalFilenames[i]);
+        if (fn.equalsIgnoreCase ("Init.thudikit")) continue;
         if (fn.endsWithIgnoreCase (".thudikit"))
             out.push_back ({ fn.upToLastOccurrenceOf (".", false, false), {}, true, {}, fn });
     }
     std::sort (out.begin(), out.end(), [] (const Entry& a, const Entry& b)
-               { if (a.name == "RHYNO") return b.name != "RHYNO"; if (b.name == "RHYNO") return false; return a.name.compareNatural (b.name) < 0; });
+               {
+                   auto rank = [] (const juce::String& n) { return n == "Init" ? 0 : (n == "RHYNO" ? 1 : 2); };
+                   if (rank (a.name) != rank (b.name)) return rank (a.name) < rank (b.name);
+                   return a.name.compareNatural (b.name) < 0;
+               });
     auto files = kitsDir().findChildFiles (juce::File::findFiles, false, "*.thudikit");
     files.sort();
     for (auto& f : files) out.push_back ({ f.getFileNameWithoutExtension(), {}, false, f, {} });
@@ -103,39 +109,82 @@ juce::String PresetManager::kitToJson() const
         kit.pads[p].label = toStd (proc.getPadLabel (p));
         kit.pads[p].note = proc.getPadNote (p);
         kit.pads[p].sound = proc.getPadSound (p);
+        if (auto smp = proc.getSlotSample (p)) kit.pads[p].sample = smp->path;
     }
+    kit.solo.label = toStd (proc.getSoloLabel());
+    kit.solo.sound = proc.getPadSound (kSoloSlot);
+    if (auto smp = proc.getSlotSample (kSoloSlot)) kit.solo.sample = smp->path;
     return fromStd (json::writeKit (kit));
+}
+
+void PresetManager::restoreSample (int slot, const std::string& path)
+{
+    thudi::SamplePtr s;
+    if (! path.empty())
+    {
+        juce::File f (fromStd (path));
+        if (! f.existsAsFile()) f = ThudiProcessor::samplesDir().getChildFile (f.getFileName());
+        juce::String err;
+        if (f.existsAsFile()) s = proc.loadSampleFile (f, err);
+        else lastError = "Missing sample " + f.getFileName();
+    }
+    proc.setSlotSample (slot, s);
 }
 
 bool PresetManager::kitFromJson (const juce::String& text)
 {
     json::Kit kit;
     if (! json::parseKit (toStd (text), kit)) { lastError = "Could not read kit file"; return false; }
-    for (int g = 0; g < kNumGlobalParams; ++g) proc.setGlobalValue ((G) g, kit.global[g]);
+    bool usesSamples = ! kit.solo.sample.empty();
+    for (auto& kp : kit.pads) usesSamples |= ! kp.sample.empty();
+    for (int g = 0; g < kNumGlobalParams; ++g)
+    {
+        // GÆRRO mode is a state of the machine, not of the kit; a kit made of chops switches it on
+        if ((G) g == G::Gaerro) { if (usesSamples) proc.setGlobalValue (G::Gaerro, 1.0f); continue; }
+        proc.setGlobalValue ((G) g, kit.global[g]);
+    }
     for (int p = 0; p < kNumPads; ++p)
     {
         proc.setPadSound (p, kit.pads[p].sound);
         proc.meta.getChildWithProperty ("index", p).setProperty ("label", fromStd (kit.pads[p].label), nullptr);
         proc.setPadNote (p, kit.pads[p].note);
+        restoreSample (p, kit.pads[p].sample);
     }
+    proc.setPadSound (kSoloSlot, kit.solo.sound);
+    proc.meta.setProperty ("soloLabel", fromStd (kit.solo.label), nullptr);
+    restoreSample (kSoloSlot, kit.solo.sample);
     proc.setKitName (fromStd (kit.name));
     return true;
 }
 
 bool PresetManager::loadDefaultKit()
 {
-    auto kits = listKits();
-    for (auto& k : kits) if (k.factory && k.name == "RHYNO") return loadKit (k);
-    if (! kits.empty()) return loadKit (kits.front());
-    // no factory kits embedded: init sounds by model in MPC-ish order
-    const int models[16] = { 0, 1, 2, 3, 4, 5, 3, 8, 1, 1, 6, 10, 0, 7, 9, 7 };
-    for (int p = 0; p < kNumPads; ++p) { initPad (p, models[p]); proc.setPadLabel (p, modelName (models[p])); }
-    proc.setKitName ("Init");
+    initKit();
     return true;
+}
+
+void PresetManager::initKit()
+{
+    // the machine starts empty: no sound on any pad (the solo slot gets a plain 808 to start from)
+    for (int p = 0; p < kNumPads; ++p)
+    {
+        proc.setPadSound (p, initSoundForModel ((int) Model::Empty));
+        proc.meta.getChildWithProperty ("index", p).setProperty ("label", "", nullptr);
+        proc.setPadNote (p, 36 + p);
+        proc.setSlotSample (p, {});
+    }
+    auto bass = initSoundForModel ((int) Model::Bass808);
+    bass[P::Poly] = 0; bass[P::Glide] = 0; bass[P::PlayMode] = 1;
+    proc.setPadSound (kSoloSlot, bass);
+    proc.meta.setProperty ("soloLabel", "INIT 808", nullptr);
+    proc.setSlotSample (kSoloSlot, {});
+    proc.setGlobalValue (G::SoloOn, 0.0f);
+    proc.setKitName ("Init");
 }
 
 bool PresetManager::loadKit (const Entry& e)
 {
+    if (e.resource == "__init__") { initKit(); return true; }
     auto text = readEntry (e);
     if (text.isEmpty()) { lastError = "Kit not found"; return false; }
     if (! kitFromJson (text)) return false;
@@ -160,6 +209,7 @@ juce::String PresetManager::padToJson (int pad) const
     json::KitPad kp;
     kp.label = toStd (proc.getPadLabel (pad));
     kp.sound = proc.getPadSound (pad);
+    if (auto smp = proc.getSlotSample (pad)) kp.sample = smp->path;
     return fromStd (json::writePad (kp));
 }
 
@@ -173,6 +223,7 @@ bool PresetManager::padFromJson (int pad, const juce::String& text, bool include
     kp.sound[P::Link] = current[P::Link];
     proc.setPadSound (pad, kp.sound);
     if (includeLabel) proc.setPadLabel (pad, fromStd (kp.label));
+    restoreSample (pad, kp.sample);
     return true;
 }
 
@@ -222,6 +273,8 @@ void PresetManager::swapPads (int a, int b)
     auto la = proc.getPadLabel (a), lb = proc.getPadLabel (b);
     proc.setPadSound (a, sb); proc.setPadSound (b, sa);
     proc.setPadLabel (a, lb); proc.setPadLabel (b, la);
+    auto xa = proc.getSlotSample (a), xb = proc.getSlotSample (b);
+    proc.setSlotSample (a, xb); proc.setSlotSample (b, xa);
 }
 
 void PresetManager::duplicatePad (int from, int to)
@@ -229,6 +282,7 @@ void PresetManager::duplicatePad (int from, int to)
     if (from == to) return;
     proc.setPadSound (to, proc.getPadSound (from));
     proc.setPadLabel (to, proc.getPadLabel (from));
+    proc.setSlotSample (to, proc.getSlotSample (from));
 }
 
 void PresetManager::initPad (int pad, int model)
@@ -237,6 +291,7 @@ void PresetManager::initPad (int pad, int model)
     auto current = proc.getPadSound (pad);
     s[P::Output] = current[P::Output];
     proc.setPadSound (pad, s);
+    if (model != (int) Model::Sample) proc.setSlotSample (pad, {});
 }
 
 void PresetManager::randomizePad (int pad, float amount)

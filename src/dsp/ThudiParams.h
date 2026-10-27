@@ -8,17 +8,19 @@
 namespace thudi
 {
 constexpr int kNumPads = 16;
+constexpr int kNumSlots = 17;          // 16 pads + the solo-mode sound
+constexpr int kSoloSlot = 16;
 constexpr int kNumOutputs = 16;
 
 enum class Model : int
 {
-    Kick = 0, Bass808, Snare, Clap, ClosedHat, OpenHat, Tom, Perc, Rim, Cymbal, Zap, Custom, Count
+    Kick = 0, Bass808, Snare, Clap, ClosedHat, OpenHat, Tom, Perc, Rim, Cymbal, Zap, Custom, Sample, Empty, Count
 };
 
 inline const char* modelName (int m)
 {
     static const char* names[] = { "Kick", "808", "Snare", "Clap", "Closed Hat", "Open Hat",
-                                   "Tom", "Perc", "Rim", "Cymbal", "Zap", "Custom" };
+                                   "Tom", "Perc", "Rim", "Cymbal", "Zap", "Custom", "Sample", "Empty" };
     return (m >= 0 && m < (int) Model::Count) ? names[m] : "?";
 }
 
@@ -39,7 +41,7 @@ struct ParamInfo
 
 // X(enumName, id, name, min, max, def, scale, unit, choices)
 #define THUDI_PAD_PARAMS(X) \
-    X(Model,        "model",        "Model",          0, 11, 0, Choice, "",   "Kick|808|Snare|Clap|Closed Hat|Open Hat|Tom|Perc|Rim|Cymbal|Zap|Custom") \
+    X(Model,        "model",        "Model",          0, 13, 0, Choice, "",   "Kick|808|Snare|Clap|Closed Hat|Open Hat|Tom|Perc|Rim|Cymbal|Zap|Custom|Sample|Empty") \
     /* ---------------- mix / play ---------------- */ \
     X(Level,        "level",        "Level",        -60, 12, 0, Linear, "dB", "") \
     X(Pan,          "pan",          "Pan",           -1,  1, 0, Linear, "",   "") \
@@ -112,7 +114,16 @@ struct ParamInfo
     X(ChorusDepth,  "chorus_depth", "Chorus Depth",   0,  6, 2.5f, Linear, "ms", "") \
     X(MonoBelow,    "mono_below",   "Mono Below",    20, 1000, 120, Log, "Hz", "") \
     X(Drift,        "drift",        "Analog Drift",   0,  1, 0.2f, Linear, "%", "") \
-    X(Tape,         "tape",         "Tape",           0,  1, 0, Linear, "%", "")
+    X(Tape,         "tape",         "Tape",           0,  1, 0, Linear, "%", "") \
+    /* ---------------- sample (gærro chops) ---------------- */ \
+    X(SmpStart,     "smp_start",    "Start",          0,  1, 0, Linear, "%", "") \
+    X(SmpEnd,       "smp_end",      "End",            0,  1, 1, Linear, "%", "") \
+    X(SmpSpeed,     "smp_speed",    "Speed",       0.25f, 4, 1, Log,    "x", "") \
+    X(SmpAttack,    "smp_attack",   "Attack",         0, 500, 0, Linear, "ms", "") \
+    X(SmpRelease,   "smp_release",  "Fade",           1, 2000, 8, Log,  "ms", "") \
+    X(SmpCutoff,    "smp_cutoff",   "Filter",        20, 20000, 20000, Log, "Hz", "") \
+    X(SmpReso,      "smp_reso",     "Resonance",      0,  1, 0.1f, Linear, "%", "") \
+    X(SmpReverse,   "smp_reverse",  "Direction",      0,  1, 0, Choice, "", "Forward|Reverse")
 
 enum class P : int
 {
@@ -141,7 +152,11 @@ inline const ParamInfo& info (P p) { return paramTable()[(size_t) p]; }
     X(BusDrive,     "bus_drive",    "Bus Drive",       0, 1, 0.15f, Linear, "%", "") \
     X(Oversampling, "oversampling", "Oversampling",    0, 2, 1, Choice, "", "1x|2x|4x") \
     X(KeysPad,      "keys_pad",     "Keys Pad",        0, 16, 0, Int, "", "") \
-    X(KeysRoot,     "keys_root",    "Keys Root",      24, 96, 60, Int, "", "")
+    X(KeysRoot,     "keys_root",    "Keys Root",      24, 96, 60, Int, "", "") \
+    X(SoloOn,       "solo",         "Solo Mode",       0, 1, 0, Choice, "", "Off|On") \
+    X(Gaerro,       "gaerro",       "Gaerro Mode",     0, 1, 0, Choice, "", "Off|On") \
+    X(GaerroDirt,   "gaerro_dirt",  "Dirt",            0, 1, 0.6f, Linear, "%", "") \
+    X(Vinyl,        "vinyl",        "Vinyl",           0, 1, 0.5f, Linear, "%", "")
 
 enum class G : int
 {

@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "Assets.h"
+#include "GaerroArt.h"
 #include "Layout.h"
 #include "Models.h"
 #include "ParamFormat.h"
@@ -104,6 +105,7 @@ void PanelContent::paint (juce::Graphics& g)
     auto bg = assets::image ("bg.png");
     if (bg.isValid()) g.drawImage (bg, { 0, 0, L::W, L::H }, juce::RectanglePlacement::stretchToFit);
     else paintFallbackBody (g);
+    gaerro::paintOverlay (g, graffiti, graffitiAlpha);   // under the print and every control
 
     // ---- brass plaque text (engraved)
     {
@@ -117,40 +119,67 @@ void PanelContent::paint (juce::Graphics& g)
         g.drawText ("THUDI  DRUM SYNTHESIZER", pl.withTrimmedTop (27.0f), juce::Justification::centred);
     }
 
-    // ---- printed labels
-    g.setColour (colours::print);
+    // ---- printed labels (in GÆRRO mode they get a dark edge so they stay readable over the paint)
+    const float shadow = graffiti > 0.0f ? 0.9f * graffitiAlpha * juce::jlimit (0.0f, 1.0f, graffiti * 4.0f) : 0.0f;
+    auto print = [&] (const juce::String& t, juce::Rectangle<float> r, juce::Justification j, juce::Colour c, float opacity = 1.0f)
+    {
+        if (shadow > 0.0f)
+        {
+            g.setColour (juce::Colours::black.withAlpha (shadow * opacity));
+            for (auto d : { juce::Point<float> (1.2f, 1.2f), juce::Point<float> (-0.8f, 0.6f), juce::Point<float> (0.6f, -0.8f) })
+                g.drawText (t, r.translated (d.x, d.y), j, true);
+        }
+        g.setColour (c.withMultipliedAlpha (opacity));
+        g.drawText (t, r, j, true);
+    };
     g.setFont (assets::labelFont (13.0f));
-    auto under = [&] (juce::Point<float> c, float rad, const juce::String& t)
-    { g.drawText (t, juce::Rectangle<float> (c.x - 60.0f, c.y + rad * 1.28f + 2.0f, 120.0f, 15.0f), juce::Justification::centredTop); };
+    auto under = [&] (juce::Point<float> c, float rad, const juce::String& t, float opacity = 1.0f)
+    { print (t, juce::Rectangle<float> (c.x - 60.0f, c.y + rad * 1.28f + 2.0f, 120.0f, 15.0f), juce::Justification::centredTop, colours::print, opacity); };
     under (L::masterKnob(), L::masterKnobR, "MASTER");
     under (L::driveKnob(), L::smallKnobR, "BUS DRIVE");
-    g.drawText ("DATA ENTRY", juce::Rectangle<float> (L::wheel().x - 60.0f, L::wheel().y - L::wheelR - 22.0f, 120.0f, 15.0f), juce::Justification::centred);
+    if (graffiti > 0.0f)
+    {
+        g.setFont (assets::labelFont (12.0f));
+        const float o = juce::jlimit (0.0f, 1.0f, graffiti * 3.0f) * graffitiAlpha;
+        under (L::vinylKnob(), L::gaerroKnobR, "VINYL", o);
+        under (L::dirtKnob(), L::gaerroKnobR, "DIRT", o);
+        g.setFont (assets::labelFont (13.0f));
+    }
+    print ("DATA ENTRY", juce::Rectangle<float> (L::wheel().x - 60.0f, L::wheel().y - L::wheelR - 22.0f, 120.0f, 15.0f), juce::Justification::centred, colours::print);
     g.setFont (assets::labelFont (12.0f));
     for (int i = 0; i < 8; ++i)
         if (knobNames[(size_t) i].isNotEmpty())
             under (L::pageKnob (i), L::pageKnobR, knobNames[(size_t) i].toUpperCase());
 
-    // pad labels printed above each pad (name left, number right) + a small status LED
-    for (int i = 0; i < 16; ++i)
+    // pad labels printed above each pad (name left, number right); the selected pad's name is printed brighter
+    if (proc.soloOn())
+    {   // SOLO: one sound across all pads -> one main label over the grid
+        auto a = soloLabelArea();
+        g.setFont (assets::labelFont (12.0f));
+        print ("SOLO", a, juce::Justification::bottomLeft, colours::printDim);
+        print (juce::String (proc.padValue (kSoloSlot, P::Poly) >= 0.5f ? "POLY" : "MONO")
+                   + (proc.padValue (kSoloSlot, P::Glide) > 0.5f ? "  GLIDE" : ""), a, juce::Justification::bottomRight, colours::printDim);
+        g.setFont (assets::labelFont (21.0f));
+        auto name = proc.getSoloLabel(); if (name.isEmpty()) name = "CHOOSE A SOUND";
+        print (name + juce::String (juce::CharPointer_UTF8 ("  \xe2\x96\xbe")), a, juce::Justification::centredBottom, colours::print);
+    }
+    else
     {
-        auto lr = L::padLabel (i);
-        const float act = juce::jlimit (0.0f, 1.0f, padActivity[(size_t) i]);
-        auto led = juce::Rectangle<float> (7.0f, 7.0f).withCentre ({ lr.getX() + 4.0f, lr.getCentreY() + 2.0f });
-        g.setColour (juce::Colours::black.withAlpha (0.8f));
-        g.fillEllipse (led.expanded (1.5f));
-        const float on = i == selectedPad ? juce::jmax (0.75f, act) : act;
-        g.setColour (juce::Colour (0xff3a0b08).interpolatedWith (juce::Colour (0xffff3b2a), on));
-        g.fillEllipse (led);
-        g.setColour (juce::Colours::white.withAlpha (0.25f + 0.3f * on));
-        g.fillEllipse (led.reduced (2.2f).translated (-0.8f, -0.8f));
-        g.setFont (assets::labelFont (15.0f));
-        g.setColour (colours::print);
-        g.drawText (proc.getPadLabel (i), lr.withTrimmedLeft (13.0f), juce::Justification::bottomLeft, true);
-        g.setColour (colours::printDim);
-        g.drawText (juce::String (i + 1), lr, juce::Justification::bottomRight);
+        for (int i = 0; i < 16; ++i)
+        {
+            auto lr = L::padLabel (i);
+            g.setFont (assets::labelFont (15.0f));
+            print (proc.getPadLabel (i), lr, juce::Justification::bottomLeft, i == selectedPad ? juce::Colour (0xfff1eee6) : colours::print);
+            print (juce::String (i + 1), lr, juce::Justification::bottomRight, i == selectedPad ? colours::print : colours::printDim);
+            if (i == selectedPad)
+            {   // small printed marker under the selected pad's name
+                g.setColour (colours::print.withAlpha (0.7f));
+                g.fillRect (lr.getX(), lr.getBottom() + 1.5f, 14.0f, 1.5f);
+            }
+        }
     }
 
-    if (bg.isValid()) return; // the Blender render already contains the 3D துடி emblem
+    if (bg.isValid()) return; // the Blender render already contains the 3D emblem
 
     // ---- Tamil logo துடி: vertical, reading bottom -> top, stretched to fill the strip
     {
@@ -177,6 +206,22 @@ void PanelContent::paint (juce::Graphics& g)
     }
 }
 
+juce::Rectangle<float> PanelContent::soloLabelArea()
+{
+    auto first = L::padLabel (12), last = L::padLabel (15);
+    return first.getUnion (last).withTrimmedTop (-4.0f);
+}
+
+void PanelContent::mouseDown (const juce::MouseEvent& e)
+{
+    if (proc.soloOn() && soloLabelArea().contains (e.position) && onSoloLabelClick) onSoloLabelClick();
+}
+
+void PanelContent::mouseDoubleClick (const juce::MouseEvent& e)
+{
+    if (L::plaque().expanded (4.0f).contains (e.position) && onPlaqueDoubleClick) onPlaqueDoubleClick();
+}
+
 // ===================================================================== Editor
 ThudiEditor::ThudiEditor (ThudiProcessor& p)
     : juce::AudioProcessorEditor (p), proc (p), content (p), lcd (p)
@@ -201,6 +246,16 @@ ThudiEditor::ThudiEditor (ThudiProcessor& p)
     masterAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (proc.apvts, ThudiProcessor::globalParamId (G::Master), masterKnob);
     driveAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (proc.apvts, ThudiProcessor::globalParamId (G::BusDrive), driveKnob);
     masterKnob.setDoubleClickReturnValue (true, 0.0);
+    for (auto* k : { &vinylKnob, &dirtKnob })
+    {
+        setupKnob (*k, false);
+        k->setVisible (false);
+    }
+    vinylKnob.setBounds (juce::Rectangle<float> (L::gaerroKnobR * 2.8f, L::gaerroKnobR * 2.8f).withCentre (L::vinylKnob()).toNearestInt());
+    dirtKnob.setBounds (juce::Rectangle<float> (L::gaerroKnobR * 2.8f, L::gaerroKnobR * 2.8f).withCentre (L::dirtKnob()).toNearestInt());
+    vinylAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (proc.apvts, ThudiProcessor::globalParamId (G::Vinyl), vinylKnob);
+    dirtAttach = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (proc.apvts, ThudiProcessor::globalParamId (G::GaerroDirt), dirtKnob);
+    vinylKnob.setDoubleClickReturnValue (true, 0.5); dirtKnob.setDoubleClickReturnValue (true, 0.6);
 
     for (int i = 0; i < 8; ++i)
     {
@@ -209,7 +264,7 @@ ThudiEditor::ThudiEditor (ThudiProcessor& p)
         pageKnobs[(size_t) i].onDragStart = [this, i] { lcd.focus = i; lcd.repaint(); };
     }
 
-    for (auto* b : { &osButton, &enterButton }) b->setPaintingIsUnclipped (true);
+    for (auto* b : { &osButton, &enterButton, &soloButton, &monoButton, &glideButton, &gaerroButton }) b->setPaintingIsUnclipped (true);
     for (auto& b : softKeys) b.setPaintingIsUnclipped (true);
     content.addAndMakeVisible (osButton);
     osButton.setBounds (L::osButton().toNearestInt());
@@ -220,6 +275,38 @@ ThudiEditor::ThudiEditor (ThudiProcessor& p)
         updateOsButton();
     };
     updateOsButton();
+
+    // ---- mode keys: SOLO (+ MONO/POLY, GLIDE), and the hidden GÆRRO key
+    content.addAndMakeVisible (soloButton);
+    soloButton.setButtonText ("SOLO");
+    soloButton.setClickingTogglesState (true);
+    soloButton.onClick = [this] { setSolo (soloButton.getToggleState()); };
+    content.addChildComponent (monoButton);
+    monoButton.onClick = [this]
+    {
+        proc.setPadValue (kSoloSlot, P::Poly, proc.padValue (kSoloSlot, P::Poly) >= 0.5f ? 0.0f : 1.0f);
+        refreshAll();
+    };
+    content.addChildComponent (glideButton);
+    glideButton.setButtonText ("GLIDE");
+    glideButton.setClickingTogglesState (true);
+    glideButton.onClick = [this]
+    {
+        const float cur = proc.padValue (kSoloSlot, P::Glide);
+        if (cur > 0.5f) { proc.meta.setProperty ("soloGlide", cur, nullptr); proc.setPadValue (kSoloSlot, P::Glide, 0.0f); }
+        else proc.setPadValue (kSoloSlot, P::Glide, (float) proc.meta.getProperty ("soloGlide", 70.0f));
+        refreshAll();
+    };
+    content.addChildComponent (gaerroButton);
+    gaerroButton.setButtonText (juce::CharPointer_UTF8 ("G\xc3\x86RRO"));
+    gaerroButton.setClickingTogglesState (true);
+    gaerroButton.getProperties().set ("ledColour", colours::padGlowG.toString());
+    gaerroButton.onClick = [this] { setGaerro (gaerroButton.getToggleState(), true); };
+    content.onPlaqueDoubleClick = [this] { revealGaerroButton (true); };
+    content.onSoloLabelClick = [this] { showSoloMenu(); };
+    gaerroButtonShown = (bool) proc.meta.getProperty ("gaerroRevealed", false) || proc.gaerroOn();
+    gaerroButtonAnim = gaerroButtonShown ? 1.0f : 0.0f;
+    layoutModeButtons();
 
     content.addAndMakeVisible (lcd);
     lcd.setBounds (L::lcdGlass().toNearestInt());
@@ -263,6 +350,8 @@ ThudiEditor::ThudiEditor (ThudiProcessor& p)
             });
         };
         pc->onChanged = [this] { refreshAll(); };
+        pc->onSoloMenu = [this] { showSoloMenu(); };
+        pc->onLoadSample = [this] (int idx) { loadSampleInto (idx); };
         content.addAndMakeVisible (*pc);
         pads.push_back (std::move (pc));
     }
@@ -275,8 +364,14 @@ ThudiEditor::ThudiEditor (ThudiProcessor& p)
     const float scale = (float) proc.meta.getProperty ("uiScale", 0.72f);
     setSize ((int) (L::W * scale), (int) (L::H * scale));
 
+    lastSolo = proc.soloOn();
+    lastGaerro = proc.gaerroOn();
+    content.graffiti = lastGaerro ? 1.0f : 0.0f;
+    lcd.pad = editSlot();
     selectPad (juce::jlimit (0, 15, proc.selectedPad));
-    startTimerHz (30);
+    updateModeButtons();
+    lastTick = juce::Time::getMillisecondCounterHiRes();
+    startTimerHz (60);
 }
 
 ThudiEditor::~ThudiEditor()
@@ -284,7 +379,7 @@ ThudiEditor::~ThudiEditor()
     stopTimer();
     proc.onMetaChanged = nullptr;
     for (auto& a : pageAttach) a.reset();
-    masterAttach.reset(); driveAttach.reset();
+    masterAttach.reset(); driveAttach.reset(); vinylAttach.reset(); dirtAttach.reset();
     setLookAndFeel (nullptr);
 }
 
@@ -297,19 +392,104 @@ void ThudiEditor::resized()
     proc.meta.setProperty ("uiScale", s, nullptr);
 }
 
+int ThudiEditor::editSlot() const { return proc.soloOn() ? kSoloSlot : proc.selectedPad; }
+
 void ThudiEditor::updateOsButton()
 {
     const int cur = (int) std::round (proc.globalParam (G::Oversampling)->convertFrom0to1 (proc.globalParam (G::Oversampling)->getValue()));
     osButton.setButtonText ("OVERSAMPLE " + juce::String (cur == 0 ? "1x" : cur == 1 ? "2x" : "4x"));
 }
 
+void ThudiEditor::updateModeButtons()
+{
+    const bool solo = proc.soloOn();
+    soloButton.setToggleState (solo, juce::dontSendNotification);
+    monoButton.setVisible (solo);
+    glideButton.setVisible (solo);
+    monoButton.setButtonText (proc.padValue (kSoloSlot, P::Poly) >= 0.5f ? "POLY" : "MONO");
+    glideButton.setToggleState (proc.padValue (kSoloSlot, P::Glide) > 0.5f, juce::dontSendNotification);
+    gaerroButton.setToggleState (proc.gaerroOn(), juce::dontSendNotification);
+    const float ga = content.graffiti > 0.0f ? juce::jlimit (0.0f, 1.0f, content.graffiti * 3.0f) * content.graffitiAlpha : 0.0f;
+    for (auto* k : { &vinylKnob, &dirtKnob }) { k->setVisible (ga > 0.0f); k->setAlpha (ga); }
+}
+
+void ThudiEditor::layoutModeButtons()
+{
+    soloButton.setBounds (L::soloButton().toNearestInt());
+    monoButton.setBounds (L::monoButton().toNearestInt());
+    glideButton.setBounds (L::glideButton().toNearestInt());
+    // the GÆRRO key slides out from under the plaque
+    const float x = gaerroButtonAnim, e = 1.0f - (1.0f - x) * (1.0f - x) * (1.0f - x);
+    auto target = L::gaerroButton(), from = target.withCentre (L::plaque().getCentre());
+    auto r = from.toFloat().translated ((target.getX() - from.getX()) * e, (target.getY() - from.getY()) * e);
+    gaerroButton.setBounds (r.toNearestInt());
+    gaerroButton.setVisible (x > 0.0f);
+    gaerroButton.setAlpha (juce::jlimit (0.0f, 1.0f, x * 1.6f));
+    gaerroButton.setInterceptsMouseClicks (x >= 1.0f, false);
+}
+
+void ThudiEditor::revealGaerroButton (bool animate)
+{
+    if (gaerroButtonShown) { if (gaerroButtonAnim >= 1.0f) lcd.flash ("..."); return; }
+    gaerroButtonShown = true;
+    proc.meta.setProperty ("gaerroRevealed", true, nullptr);
+    gaerroButtonAnim = animate ? 0.001f : 1.0f;
+    layoutModeButtons();
+}
+
+void ThudiEditor::setSolo (bool on)
+{
+    proc.setGlobalValue (G::SoloOn, on ? 1.0f : 0.0f);
+    lastSolo = on;
+    lcd.pad = editSlot();
+    lcd.page = 0;
+    if (lcd.mode == LcdDisplay::Mode::Browse) lcd.refreshEntries();
+    lcd.flash (on ? "SOLO: ONE SOUND ON EVERY NOTE" : "SOLO OFF");
+    refreshAll();
+}
+
+void ThudiEditor::setGaerro (bool on, bool animate)
+{
+    if (proc.gaerroOn() != on) proc.setGlobalValue (G::Gaerro, on ? 1.0f : 0.0f);
+    lastGaerro = on;
+    if (on)
+    {
+        content.graffitiAlpha = 1.0f;
+        if (animate) { content.graffiti = 0.0001f; lcd.startSmoke(); }
+        else content.graffiti = 1.0f;
+    }
+    else
+    {
+        lcd.stopSmoke();
+        if (! animate) { content.graffiti = 0.0f; content.graffitiAlpha = 1.0f; }
+        lcd.flash ("BACK TO CLEAN");
+    }
+    updateModeButtons();
+    for (auto& pc : pads) pc->setLight (pc->getLight(), on);
+    content.repaint();
+}
+
+void ThudiEditor::finishAnimations()
+{
+    lcd.stopSmoke();
+    content.graffiti = proc.gaerroOn() ? 1.0f : 0.0f;
+    content.graffitiAlpha = 1.0f;
+    gaerroButtonAnim = gaerroButtonShown ? 1.0f : 0.0f;
+    layoutModeButtons();
+    updateModeButtons();
+    content.repaint();
+}
+
 void ThudiEditor::selectPad (int pad)
 {
     proc.selectedPad = pad;
     content.selectedPad = pad;
-    lcd.pad = pad;
-    if (lcd.mode == LcdDisplay::Mode::Browse && lcd.browse == LcdDisplay::Browse::Pads) lcd.refreshEntries();
-    rebuildPage();
+    if (! proc.soloOn())
+    {
+        lcd.pad = pad;
+        if (lcd.mode == LcdDisplay::Mode::Browse && lcd.browse == LcdDisplay::Browse::Pads) lcd.refreshEntries();
+        rebuildPage();
+    }
     content.repaint();
 }
 
@@ -317,6 +497,7 @@ void ThudiEditor::setPage (int page) { lcd.page = page; rebuildPage(); }
 
 void ThudiEditor::rebuildPage()
 {
+    lcd.pad = editSlot();
     const int pad = lcd.pad;
     const int model = (int) std::round (proc.padValue (pad, P::Model));
     lastModel = model;
@@ -354,23 +535,46 @@ void ThudiEditor::refreshAll()
     rebuildPage();
     if (lcd.mode == LcdDisplay::Mode::Browse) lcd.refreshEntries();
     updateOsButton();
+    updateModeButtons();
     content.repaint();
 }
 
 void ThudiEditor::softKey (int i)
 {
+    if (lcd.smoking()) return;
     if (lcd.mode == LcdDisplay::Mode::Edit)
     {
         if (i == 0) { lcd.page = (lcd.page - 1 + lcd.numPages()) % lcd.numPages(); rebuildPage(); }
         else if (i == 1) { lcd.page = (lcd.page + 1) % lcd.numPages(); rebuildPage(); }
-        else if (i == 2) { lcd.mode = LcdDisplay::Mode::Browse; lcd.browse = LcdDisplay::Browse::Kits; lcd.refreshEntries(); }
+        else if (i == 2)
+        {
+            lcd.mode = LcdDisplay::Mode::Browse;
+            // an empty pad or the solo slot wants a sound: start in the sound library
+            const bool wantsSound = lcd.pad == kSoloSlot || (int) std::round (proc.padValue (lcd.pad, P::Model)) == (int) Model::Empty;
+            lcd.browse = wantsSound ? LcdDisplay::Browse::Pads : LcdDisplay::Browse::Kits;
+            lcd.refreshEntries();
+        }
         else showSaveMenu();
     }
     else
     {
-        if (i == 0) { lcd.browse = LcdDisplay::Browse::Kits; lcd.refreshEntries(); }
-        else if (i == 1) { lcd.browse = LcdDisplay::Browse::Pads; lcd.refreshEntries(); }
-        else if (i == 2) loadSelectedEntry();
+        if (i == 0) { lcd.browse = lcd.browse == LcdDisplay::Browse::Kits ? LcdDisplay::Browse::Pads : LcdDisplay::Browse::Kits; lcd.refreshEntries(); }
+        else if (i == 1) loadSelectedEntry();
+        else if (i == 2)
+        {
+            if (lcd.browse == LcdDisplay::Browse::Kits)
+                askText ("Save kit", proc.getKitName() == "Init" ? juce::String ("My Kit") : proc.getKitName(), [this] (const juce::String& t)
+                {
+                    lcd.flash (proc.presets->saveKit (t) ? "SAVED KIT " + t.toUpperCase() : proc.presets->lastError.toUpperCase());
+                    lcd.refreshEntries();
+                });
+            else
+                askText (lcd.pad == kSoloSlot ? "Save sound" : "Save pad preset", proc.getPadLabel (lcd.pad), [this] (const juce::String& t)
+                {
+                    lcd.flash (proc.presets->savePad (lcd.pad, t) ? "SAVED " + t.toUpperCase() : proc.presets->lastError.toUpperCase());
+                    lcd.refreshEntries();
+                });
+        }
         else { lcd.mode = LcdDisplay::Mode::Edit; rebuildPage(); }
     }
     lcd.repaint();
@@ -378,6 +582,7 @@ void ThudiEditor::softKey (int i)
 
 void ThudiEditor::enter()
 {
+    if (lcd.smoking()) return;
     if (lcd.mode == LcdDisplay::Mode::Browse) loadSelectedEntry();
     else { lcd.mode = LcdDisplay::Mode::Browse; lcd.browse = LcdDisplay::Browse::Pads; lcd.refreshEntries(); }
 }
@@ -386,7 +591,16 @@ void ThudiEditor::loadSelectedEntry()
 {
     if (lcd.entries.empty()) return;
     const auto e = lcd.entries[(size_t) juce::jlimit (0, (int) lcd.entries.size() - 1, lcd.browseIndex)];
-    bool ok = lcd.browse == LcdDisplay::Browse::Kits ? proc.presets->loadKit (e) : proc.presets->loadPad (lcd.pad, e);
+    bool ok;
+    if (lcd.browse == LcdDisplay::Browse::Kits) ok = proc.presets->loadKit (e);
+    else
+    {
+        const int slot = lcd.pad;
+        // SOLO: MONO/POLY and GLIDE are performance switches, they stay as set when another sound is chosen
+        const float poly = proc.padValue (kSoloSlot, P::Poly), glide = proc.padValue (kSoloSlot, P::Glide);
+        ok = proc.presets->loadPad (slot, e);
+        if (ok && slot == kSoloSlot) { proc.setPadValue (kSoloSlot, P::Poly, poly); proc.setPadValue (kSoloSlot, P::Glide, glide); }
+    }
     lcd.flash (ok ? "LOADED " + e.name.toUpperCase() : proc.presets->lastError.toUpperCase());
     refreshAll();
 }
@@ -395,7 +609,7 @@ void ThudiEditor::wheelStep (int steps)
 {
     if (lcd.mode == LcdDisplay::Mode::Browse) { lcd.scrollBrowse (steps); return; }
     auto pages = pagesForModel ((int) std::round (proc.padValue (lcd.pad, P::Model)));
-    const auto& knobs = pages[(size_t) lcd.page].knobs;
+    const auto& knobs = pages[(size_t) juce::jlimit (0, (int) pages.size() - 1, lcd.page)].knobs;
     if (lcd.focus >= (int) knobs.size()) return;
     const P p = knobs[(size_t) lcd.focus];
     const auto& pi = info (p);
@@ -407,20 +621,77 @@ void ThudiEditor::wheelStep (int steps)
     lcd.repaint();
 }
 
+void ThudiEditor::addLibraryMenu (juce::PopupMenu& m, int slot)
+{
+    juce::String currentCat;
+    juce::PopupMenu catMenu;
+    auto flush = [&] { if (currentCat.isNotEmpty()) m.addSubMenu (currentCat, catMenu); catMenu = {}; };
+    for (auto& e : proc.presets->listPads())
+    {
+        if (e.category != currentCat) { flush(); currentCat = e.category; }
+        catMenu.addItem ((e.factory ? "" : "* ") + e.name, [this, e, slot]
+        {
+            lcd.mode = LcdDisplay::Mode::Browse; lcd.browse = LcdDisplay::Browse::Pads;
+            lcd.pad = slot; lcd.refreshEntries();
+            for (size_t i = 0; i < lcd.entries.size(); ++i)
+                if (lcd.entries[i].name == e.name && lcd.entries[i].category == e.category) lcd.browseIndex = (int) i;
+            loadSelectedEntry();
+            lcd.mode = LcdDisplay::Mode::Edit; rebuildPage();
+        });
+    }
+    flush();
+}
+
+void ThudiEditor::showSoloMenu()
+{
+    juce::PopupMenu m;
+    m.addSectionHeader ("SOLO  " + proc.getSoloLabel());
+    juce::PopupMenu lib;
+    addLibraryMenu (lib, kSoloSlot);
+    m.addSubMenu ("Choose sound", lib);
+    m.addItem ("Edit sound", [this] { lcd.mode = LcdDisplay::Mode::Edit; lcd.page = 0; rebuildPage(); });
+    m.addItem ("Rename...", [this] { askText ("Rename solo sound", proc.getSoloLabel(), [this] (const juce::String& t) { proc.setSoloLabel (t); refreshAll(); }); });
+    m.addItem ("Save as pad preset...", [this]
+    {
+        askText ("Save sound", proc.getSoloLabel(), [this] (const juce::String& t)
+        { lcd.flash (proc.presets->savePad (kSoloSlot, t) ? "SAVED " + t.toUpperCase() : proc.presets->lastError.toUpperCase()); });
+    });
+    m.addSeparator();
+    const bool poly = proc.padValue (kSoloSlot, P::Poly) >= 0.5f;
+    m.addItem ("Mono (legato)", true, ! poly, [this] { proc.setPadValue (kSoloSlot, P::Poly, 0.0f); refreshAll(); });
+    m.addItem ("Poly", true, poly, [this] { proc.setPadValue (kSoloSlot, P::Poly, 1.0f); refreshAll(); });
+    m.addItem ("Glide", true, proc.padValue (kSoloSlot, P::Glide) > 0.5f, [this] { glideButton.triggerClick(); });
+    juce::PopupMenu root;
+    const int curRoot = (int) std::round (proc.globalParam (G::KeysRoot)->convertFrom0to1 (proc.globalParam (G::KeysRoot)->getValue()));
+    for (int n = 24; n <= 84; n += 12)
+        root.addItem ("Pad 1 = " + juce::MidiMessage::getMidiNoteName (n, true, true, 3), true, curRoot == n, [this, n] { proc.setGlobalValue (G::KeysRoot, (float) n); refreshAll(); });
+    m.addSubMenu ("Pads play from", root);
+    m.addSeparator();
+    m.addItem ("Leave solo mode", [this] { setSolo (false); });
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&soloButton));
+}
+
 void ThudiEditor::showSaveMenu()
 {
     juce::PopupMenu m;
+    const auto kitName = proc.getKitName();
+    const bool userKit = PresetManager::kitsDir().getChildFile (juce::File::createLegalFileName (kitName) + ".thudikit").existsAsFile();
+    if (userKit)
+        m.addItem ("Save kit \"" + kitName + "\"", [this, kitName]
+        { lcd.flash (proc.presets->saveKit (kitName) ? "SAVED KIT " + kitName.toUpperCase() : proc.presets->lastError.toUpperCase()); });
     m.addItem ("Save kit as...", [this]
     {
-        askText ("Save kit", proc.getKitName(), [this] (const juce::String& t)
+        askText ("Save kit", proc.getKitName() == "Init" ? juce::String ("My Kit") : proc.getKitName(), [this] (const juce::String& t)
         { lcd.flash (proc.presets->saveKit (t) ? "SAVED KIT " + t.toUpperCase() : proc.presets->lastError.toUpperCase()); });
     });
-    m.addItem ("Save pad " + juce::String (lcd.pad + 1) + " as preset...", [this]
+    const int slot = lcd.pad;
+    m.addItem (slot == kSoloSlot ? juce::String ("Save solo sound as preset...") : "Save pad " + juce::String (slot + 1) + " as preset...", [this, slot]
     {
-        askText ("Save pad preset", proc.getPadLabel (lcd.pad), [this] (const juce::String& t)
-        { lcd.flash (proc.presets->savePad (lcd.pad, t) ? "SAVED PAD " + t.toUpperCase() : proc.presets->lastError.toUpperCase()); });
+        askText ("Save pad preset", proc.getPadLabel (slot), [this, slot] (const juce::String& t)
+        { lcd.flash (proc.presets->savePad (slot, t) ? "SAVED PAD " + t.toUpperCase() : proc.presets->lastError.toUpperCase()); });
     });
     m.addSeparator();
+    m.addItem ("New empty kit (Init)", [this] { proc.presets->initKit(); lcd.flash ("INIT: EMPTY KIT"); refreshAll(); });
     m.addItem ("Open preset folder", [] { auto d = PresetManager::userRoot(); d.createDirectory(); d.startAsProcess(); });
     m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&softKeys[3]));
 }
@@ -442,21 +713,118 @@ void ThudiEditor::askText (const juce::String& title, const juce::String& initia
     }), true);
 }
 
+// ---------------------------------------------------------------- samples (GÆRRO mode)
+static bool isAudioFile (const juce::String& path)
+{
+    return juce::File (path).hasFileExtension ("wav;aif;aiff;flac;mp3;ogg");
+}
+
+bool ThudiEditor::isInterestedInFileDrag (const juce::StringArray& files)
+{
+    if (! proc.gaerroOn()) return false;
+    for (auto& f : files) if (isAudioFile (f)) return true;
+    return false;
+}
+
+void ThudiEditor::filesDropped (const juce::StringArray& files, int x, int y)
+{
+    juce::String path;
+    for (auto& f : files) if (isAudioFile (f)) { path = f; break; }
+    if (path.isEmpty()) return;
+    const auto pt = content.getLocalPoint (this, juce::Point<int> (x, y)).toFloat();
+    // dropped on the waveform of a sample pad: replace just that pad's audio, keep its region
+    if (lcd.getBounds().toFloat().contains (pt) && lcd.pad != kSoloSlot && (int) std::round (proc.padValue (lcd.pad, P::Model)) == (int) Model::Sample)
+    {
+        juce::String err;
+        if (auto s = proc.loadSampleFile (juce::File (path), err)) { proc.setSlotSample (lcd.pad, s); lcd.flash ("LOADED " + juce::String (s->name).toUpperCase()); }
+        else lcd.flash (err.toUpperCase());
+        refreshAll();
+        return;
+    }
+    int first = 0;
+    for (int i = 0; i < 16; ++i) if (L::pad (i).expanded (8.0f).contains (pt)) first = i;
+    askChop (juce::File (path), first);
+}
+
+void ThudiEditor::askChop (const juce::File& f, int firstPad)
+{
+    auto* w = new juce::AlertWindow ("Chop " + f.getFileName(), "Spread the sample over the pads, starting at pad " + juce::String (firstPad + 1) + ".",
+                                     juce::MessageBoxIconType::NoIcon, this);
+    w->setLookAndFeel (&lnf);
+    juce::StringArray choices;
+    const int maxSlices = kNumPads - firstPad;
+    for (int n = 1; n <= maxSlices; ++n) choices.add (n == 1 ? juce::String ("1 pad (whole file)") : juce::String (n) + " pads");
+    w->addComboBox ("slices", choices, "Slices");
+    auto* combo = w->getComboBoxComponent ("slices");
+    const int last = (int) proc.meta.getProperty ("lastSlices", 16);
+    combo->setSelectedItemIndex (juce::jlimit (0, maxSlices - 1, last - 1));
+    w->addButton ("CHOP", 1, juce::KeyPress (juce::KeyPress::returnKey));
+    w->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+    w->enterModalState (true, juce::ModalCallbackFunction::create ([this, w, f, firstPad] (int result)
+    {
+        if (result != 1) return;
+        const int n = w->getComboBoxComponent ("slices")->getSelectedItemIndex() + 1;
+        proc.meta.setProperty ("lastSlices", n, nullptr);
+        juce::String err;
+        const int made = proc.chopFileOntoPads (f, n, firstPad, err);
+        if (made > 0)
+        {
+            lcd.flash ("CHOPPED INTO " + juce::String (made) + (made == 1 ? " PAD" : " PADS"));
+            if (proc.soloOn()) setSolo (false);
+            selectPad (firstPad);
+            lcd.mode = LcdDisplay::Mode::Edit; lcd.page = 0;
+        }
+        else lcd.flash (err.toUpperCase());
+        refreshAll();
+    }), true);
+}
+
+void ThudiEditor::loadSampleInto (int pad)
+{
+    chooser = std::make_unique<juce::FileChooser> ("Load a sample to chop", juce::File::getSpecialLocation (juce::File::userMusicDirectory), "*.wav;*.aif;*.aiff;*.flac;*.mp3;*.ogg");
+    chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles, [this, pad] (const juce::FileChooser& fc)
+    {
+        auto f = fc.getResult();
+        if (f.existsAsFile()) askChop (f, pad);
+    });
+}
+
+// ---------------------------------------------------------------- animation / meters (60 Hz)
 void ThudiEditor::timerCallback()
 {
-    for (int i = 0; i < 16; ++i)
+    const double now = juce::Time::getMillisecondCounterHiRes();
+    const float dt = (float) juce::jlimit (0.0, 0.1, (now - lastTick) * 0.001);
+    lastTick = now;
+
+    const bool gaerro = proc.gaerroOn();
+    if (gaerro != lastGaerro) setGaerro (gaerro, true);          // automation / kit load
+    if (proc.soloOn() != lastSolo) { lastSolo = proc.soloOn(); lcd.pad = editSlot(); refreshAll(); }
+
+    for (int i = 0; i < 16; ++i) pads[(size_t) i]->setLight (proc.padLight (i), gaerro);
+
+    // graffiti thrown on / washed off
+    if (gaerro && content.graffiti > 0.0f && content.graffiti < 1.0f)
     {
-        const float a = proc.padActivity (i);
-        auto& pc = *pads[(size_t) i];
-        if (std::abs (a - pc.lastActivity) > 0.03f || (a < 0.03f && pc.lastActivity >= 0.03f))
-        {
-            pc.lastActivity = a;
-            content.padActivity[(size_t) i] = a;
-            content.repaint (L::padLabel (i).expanded (4.0f).toNearestInt());
-        }
+        content.graffiti = juce::jmin (1.0f, content.graffiti + dt / gaerro::kRevealSeconds);
+        content.repaint(); updateModeButtons();
     }
+    if (! gaerro && content.graffiti > 0.0f)
+    {
+        content.graffitiAlpha -= dt / 0.6f;
+        if (content.graffitiAlpha <= 0.0f) { content.graffiti = 0.0f; content.graffitiAlpha = 1.0f; }
+        content.repaint(); updateModeButtons();
+    }
+    if (gaerroButtonAnim > 0.0f && gaerroButtonAnim < 1.0f)
+    {
+        gaerroButtonAnim = juce::jmin (1.0f, gaerroButtonAnim + dt / 0.45f);
+        layoutModeButtons();
+        content.repaint (L::gaerroButton().getUnion (L::plaque()).expanded (12.0f).toNearestInt());
+        if (gaerroButtonAnim >= 1.0f) { lcd.flash (juce::CharPointer_UTF8 ("G\xc3\x86RRO MODE UNLOCKED")); }
+    }
+    lcd.advance (dt);
+
     if (lcd.messageTicks > 0 && --lcd.messageTicks == 0) lcd.message.clear();
     const int model = (int) std::round (proc.padValue (lcd.pad, P::Model));
     if (model != lastModel) rebuildPage();
-    lcd.repaint();
+    if (((int) (now / 33.0)) % 2 == 0) lcd.repaint();   // ~30 fps is plenty for the text
 }

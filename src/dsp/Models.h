@@ -60,6 +60,12 @@ inline std::vector<Page> pagesForModel (int model)
             pages.push_back ({ "SWEEP",  V { P::TonePitch, P::SweepAmt, P::SweepTime, P::SweepCurve, P::ToneDecay, P::ToneCurve, P::ToneShape, P::Growl } });
             pages.push_back ({ "FM",     V { P::FmAmt, P::FmRatio, P::FmDecay, P::NoiseLevel, P::NoiseCutoff, P::NoiseDecay, P::ToneAttack, P::ToneLP } });
             break;
+        case Model::Sample:
+            pages.push_back ({ "CHOP",   V { P::SmpStart, P::SmpEnd, P::Tune, P::SmpSpeed, P::SmpAttack, P::SmpRelease, P::SmpCutoff, P::SmpReso } });
+            pages.push_back ({ "TRIG",   V { P::SmpReverse, P::PlayMode, P::Poly, P::Fine, P::VelSens, P::Release, P::Choke, P::Level } });
+            break;
+        case Model::Empty:
+            return { { "EMPTY", V {} } };
         case Model::Custom:
         case Model::Count:
         default:
@@ -118,6 +124,10 @@ inline PadSound initSoundForModel (int model)
         case Model::Zap:
             set (P::TonePitch, 200); set (P::SweepAmt, 48); set (P::SweepTime, 110); set (P::SweepCurve, -0.2f); set (P::ToneDecay, 160);
             set (P::FmAmt, 0.2f); set (P::FmRatio, 2); break;
+        case Model::Sample:
+            set (P::ToneLevel, 0); set (P::Poly, 1); set (P::Drift, 0); set (P::VelSens, 0.3f); break;
+        case Model::Empty:
+            set (P::ToneLevel, 0); set (P::NoiseLevel, 0); set (P::MetalLevel, 0); set (P::BodyLevel, 0); set (P::Drift, 0); break;
         default: break;
     }
     return s;

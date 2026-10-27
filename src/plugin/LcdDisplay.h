@@ -16,6 +16,8 @@ public:
     explicit LcdDisplay (ThudiProcessor& p);
     void paint (juce::Graphics&) override;
     void mouseDown (const juce::MouseEvent&) override;
+    void mouseDrag (const juce::MouseEvent&) override;
+    void mouseUp (const juce::MouseEvent&) override;
     void mouseDoubleClick (const juce::MouseEvent&) override;
     void mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
 
@@ -30,11 +32,19 @@ public:
     void scrollBrowse (int delta);
     juce::StringArray softKeyLabels() const;
     int numPages() const;
-    void flash (const juce::String& msg) { message = msg; messageTicks = 60; repaint(); }
+    void flash (const juce::String& msg) { message = msg; messageTicks = 120; repaint(); }
 
     std::function<void (int)> onPageChanged;
     std::function<void (int)> onFocusChanged;
     std::function<void()> onLoadSelected;
+
+    // GÆRRO switch-on: a digital cigarette smoked fast, as a loading screen (seconds; < 0 = off)
+    static constexpr float kSmokeLength = 2.6f;
+    void startSmoke() { smokeT = 0.0f; smokeSeed = juce::Random::getSystemRandom().nextInt(); repaint(); }
+    bool smoking() const { return smokeT >= 0.0f; }
+    void stopSmoke() { smokeT = -1.0f; repaint(); }
+    void setSmokeTime (float t) { smokeT = t; repaint(); }   // snapshots
+    void advance (float dt) { if (smokeT >= 0.0f) { smokeT += dt; if (smokeT > kSmokeLength) smokeT = -1.0f; repaint(); } }
 
     // set by the editor: the 8 local x centres of the knobs, so the page cells line up nicely
 private:
@@ -42,6 +52,13 @@ private:
     void paintEdit (juce::Graphics&, juce::Rectangle<float> r);
     void paintBrowse (juce::Graphics&, juce::Rectangle<float> r);
     void paintEnvelope (juce::Graphics&, juce::Rectangle<float> r);
+    void paintWave (juce::Graphics&, juce::Rectangle<float> r);
+    void paintSmoke (juce::Graphics&, juce::Rectangle<float> r);
+    juce::Rectangle<float> sideBox() const { return { 378.0f, 54.0f, (float) getWidth() - 384.0f, 92.0f }; }
+    bool isSamplePage() const;
+    float smokeT = -1.0f; int smokeSeed = 0;
+    int dragMarker = -1;   // 0 = start, 1 = end (sample region)
+    const void* peaksFor = nullptr; std::vector<std::pair<float, float>> peaks;
     juce::Rectangle<float> tabArea() const;
     juce::Rectangle<float> cellArea (int i) const;
     juce::Rectangle<float> listRow (int i) const;

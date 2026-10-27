@@ -70,6 +70,14 @@
     "chorus_depth": 2.5,
     "mono_below": 120.0,
     "drift": 0.2,
-    "tape": 0.5
+    "tape": 0.5,
+    "smp_start": 0.0,
+    "smp_end": 1.0,
+    "smp_speed": 1.0,
+    "smp_attack": 0.0,
+    "smp_release": 8.0,
+    "smp_cutoff": 20000.0,
+    "smp_reso": 0.1,
+    "smp_reverse": 0.0
   }
 }

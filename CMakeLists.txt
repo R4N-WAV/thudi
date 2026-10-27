@@ -16,7 +16,8 @@ set(THUDI_JUCE_DIR "" CACHE PATH "Use a local JUCE checkout instead of downloadi
 add_library(thudi_dsp STATIC
     src/dsp/Voice.cpp
     src/dsp/PadChain.cpp
-    src/dsp/Engine.cpp)
+    src/dsp/Engine.cpp
+    src/dsp/SampleData.cpp)
 target_include_directories(thudi_dsp PUBLIC src/dsp)
 if(MSVC)
     target_compile_options(thudi_dsp PRIVATE /W3 /fp:fast)
@@ -27,6 +28,9 @@ endif()
 if(THUDI_BUILD_TOOLS)
     add_executable(thudi_render tools/thudi_render.cpp)
     target_link_libraries(thudi_render PRIVATE thudi_dsp)
+    # engine checks that have no reference recording (empty pads, pad glow, solo mode, sample chops, GÆRRO noise floor)
+    add_executable(thudi_dsp_tests tools/thudi_dsp_tests.cpp)
+    target_link_libraries(thudi_dsp_tests PRIVATE thudi_dsp)
 endif()
 
 if(NOT THUDI_BUILD_PLUGIN AND NOT THUDI_BUILD_TOOLS)
@@ -57,6 +61,8 @@ file(GLOB THUDI_UI_ASSETS CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/ui/*.svg
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/*.ttf
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/logo/*.path
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/gaerro/*.png
+    ${CMAKE_CURRENT_SOURCE_DIR}/assets/gaerro/*.json
     ${CMAKE_CURRENT_SOURCE_DIR}/presets/factory/kits/*.thudikit)
 file(GLOB_RECURSE THUDI_PAD_PRESETS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/presets/factory/pads/*.thudipad)
 juce_add_binary_data(ThudiData NAMESPACE ThudiBinary SOURCES ${THUDI_UI_ASSETS} ${THUDI_PAD_PRESETS})
@@ -68,6 +74,7 @@ set(THUDI_PLUGIN_SOURCES
     src/plugin/ThudiLookAndFeel.cpp
     src/plugin/PadGrid.cpp
     src/plugin/LcdDisplay.cpp
+    src/plugin/GaerroArt.cpp
     src/plugin/PluginEditor.cpp)
 
 set(THUDI_JUCE_DEFS
@@ -76,6 +83,9 @@ set(THUDI_JUCE_DEFS
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
     JUCE_REPORT_APP_USAGE=0
+    JUCE_USE_MP3AUDIOFORMAT=1
+    JUCE_USE_FLAC=1
+    JUCE_USE_OGGVORBIS=1
     ${THUDI_LINUX_DEFS})
 
 if(THUDI_BUILD_PLUGIN)
@@ -101,7 +111,7 @@ if(THUDI_BUILD_PLUGIN)
     target_compile_definitions(Thudi PUBLIC ${THUDI_JUCE_DEFS})
     target_link_libraries(Thudi
         PRIVATE thudi_dsp ThudiData
-                juce::juce_audio_processors juce::juce_gui_basics juce::juce_graphics
+                juce::juce_audio_processors juce::juce_audio_formats juce::juce_gui_basics juce::juce_graphics
         PUBLIC  juce::juce_recommended_config_flags juce::juce_recommended_lto_flags juce::juce_recommended_warning_flags)
 endif()
 

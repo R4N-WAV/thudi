@@ -15,6 +15,8 @@ namespace colours
     const juce::Colour lcdDim    { 0xff9db8ff };
     const juce::Colour accentRed { 0xffc8322b };
     const juce::Colour brass     { 0xffc9a65a };
+    const juce::Colour padGlow   { 0xffff4a2a };   // backlit pads (normal)
+    const juce::Colour padGlowG  { 0xffb8ff2e };   // backlit pads (GÆRRO mode)
 }
 
 class ThudiLookAndFeel : public juce::LookAndFeel_V4
@@ -35,5 +37,6 @@ public:
     juce::Font getAlertWindowFont() override;
     void drawAlertBox (juce::Graphics&, juce::AlertWindow&, const juce::Rectangle<int>& textArea, juce::TextLayout&) override;
     juce::Slider::SliderLayout getSliderLayout (juce::Slider&) override;
+    void drawCornerResizer (juce::Graphics&, int w, int h, bool isMouseOver, bool isMouseDragging) override;
 };
 } // namespace thudi

@@ -21,14 +21,55 @@ void PadComponent::repaintWithShadow()
         repaint();
 }
 
+void PadComponent::setLight (float v, bool gaerro)
+{
+    v = juce::jlimit (0.0f, 1.0f, v);
+    if (std::abs (v - light) < 0.004f && gaerro == gaerroLook && ! (v == 0.0f && light > 0.0f)) return;
+    light = v; gaerroLook = gaerro;
+    repaint();
+}
+
+// light from inside the translucent rubber: perceived brightness rises fast, so a gentle curve keeps the tail visible
+static float glowCurve (float l) { return l <= 0.0f ? 0.0f : std::pow (l, 0.6f); }
+
 void PadComponent::paint (juce::Graphics& g)
 {
     auto r = getLocalBounds().toFloat();
     auto img = assets::image (pressed ? "pad_down.png" : "pad_up.png");
+    const float glow = glowCurve (light);
     if (img.isValid())
     {
         // renders are framed at 1.2x the pad size (10% margin on each side for the cast shadow)
-        g.drawImage (img, r.expanded (r.getWidth() * 0.1f), juce::RectanglePlacement::stretchToFit);
+        auto frame = r.expanded (r.getWidth() * 0.1f);
+        if (glow > 0.0f)
+        {   // light spilling out from under the pad onto the tray
+            const auto c = gaerroLook ? colours::padGlowG : colours::padGlow;
+            juce::ColourGradient halo (c.withAlpha (0.30f * glow), r.getCentreX(), r.getCentreY(),
+                                       c.withAlpha (0.0f), r.getCentreX() + r.getWidth() * 0.62f, r.getCentreY(), true);
+            g.setGradientFill (halo);
+            g.fillRoundedRectangle (r.expanded (r.getWidth() * 0.09f), r.getWidth() * 0.12f);
+        }
+        g.drawImage (img, frame, juce::RectanglePlacement::stretchToFit);
+        if (glow > 0.0f)
+        {
+            juce::String litName = juce::String (gaerroLook ? "pad_lit_g" : "pad_lit") + (pressed ? "_down.png" : ".png");
+            auto lit = assets::image (litName);
+            if (lit.isValid())
+            {
+                g.setOpacity (glow);
+                g.drawImage (lit, frame, juce::RectanglePlacement::stretchToFit);
+                g.setOpacity (1.0f);
+            }
+            else
+            {   // no lit render: tint the top face from inside
+                auto face = r.reduced (r.getWidth() * 0.06f).translated (0, pressed ? 1.0f : 0.0f);
+                const auto c = gaerroLook ? colours::padGlowG : colours::padGlow;
+                juce::ColourGradient cg (c.withAlpha (0.55f * glow), face.getCentreX(), face.getCentreY(),
+                                         c.withAlpha (0.18f * glow), face.getX(), face.getY(), true);
+                g.setGradientFill (cg);
+                g.fillRoundedRectangle (face, 6.0f);
+            }
+        }
         return;
     }
     // fallback (no renders embedded): square rubber pad with a soft cast shadow
@@ -44,11 +85,22 @@ void PadComponent::paint (juce::Graphics& g)
     g.fillRoundedRectangle (pr, 3.5f);
     g.setColour (juce::Colours::white.withAlpha (0.10f));
     g.drawLine (pr.getX() + 3, pr.getY() + 0.8f, pr.getRight() - 3, pr.getY() + 0.8f, 1.2f);
+    if (glow > 0.0f)
+    {
+        const auto c = gaerroLook ? colours::padGlowG : colours::padGlow;
+        g.setColour (c.withAlpha (0.5f * glow));
+        g.fillRoundedRectangle (pr.reduced (4.0f), 3.0f);
+    }
 }
 
 void PadComponent::mouseDown (const juce::MouseEvent& e)
 {
-    if (e.mods.isPopupMenu()) { if (onSelect) onSelect (index); showMenu(); return; }
+    if (e.mods.isPopupMenu())
+    {
+        if (proc.soloOn()) { if (onSoloMenu) onSoloMenu(); return; }
+        if (onSelect) onSelect (index);
+        showMenu(); return;
+    }
     // velocity from vertical position: top edge = hardest hit
     const float v = juce::jlimit (0.25f, 1.0f, 1.05f - 0.75f * (float) e.y / (float) juce::jmax (1, getHeight()));
     pressed = true; repaintWithShadow();
@@ -70,6 +122,8 @@ void PadComponent::showMenu()
     const auto label = proc.getPadLabel (index);
     m.addSectionHeader ("PAD " + juce::String (index + 1) + "  " + label);
     m.addItem ("Edit sound", [this] { if (onEdit) onEdit (index); });
+    if (proc.gaerroOn())
+        m.addItem ("Load sample / chop from here...", [this] { if (onLoadSample) onLoadSample (index); });
     m.addItem ("Rename...", [this] { if (onRename) onRename (index); });
     m.addSeparator();
     m.addItem ("Copy pad", [this] { proc.presets->copyPad (index); });
@@ -110,6 +164,7 @@ void PadComponent::showMenu()
     }
     flush();
     m.addSubMenu ("Load pad preset", load, ! entries.empty());
+    m.addItem ("Clear pad (empty)", [this] { proc.presets->initPad (index, (int) Model::Empty); proc.setPadLabel (index, ""); if (onChanged) onChanged(); });
     m.addItem ("Save pad preset...", [this] { if (onSavePreset) onSavePreset (index); });
     m.addItem ("Randomize sound", [this] { proc.presets->randomizePad (index, 0.25f); if (onChanged) onChanged(); });
     m.addSeparator();
@@ -134,12 +189,6 @@ void PadComponent::showMenu()
     m.addSubMenu ("Link (trigger together)", link);
     m.addSubMenu ("Play mode", mode);
 
-    const int keysPad = (int) std::round (proc.globalParam (G::KeysPad)->convertFrom0to1 (proc.globalParam (G::KeysPad)->getValue()));
-    m.addItem ("Play chromatically from keyboard", true, keysPad == index + 1, [this, keysPad]
-    {
-        proc.setGlobalValue (G::KeysPad, keysPad == index + 1 ? 0.0f : (float) (index + 1));
-        if (onChanged) onChanged();
-    });
     m.addSeparator();
     const auto noteName = juce::MidiMessage::getMidiNoteName (proc.getPadNote (index), true, true, 3);
     m.addItem ("MIDI learn note (now " + noteName + ")", [this] { proc.startMidiLearn (index); if (onChanged) onChanged(); });

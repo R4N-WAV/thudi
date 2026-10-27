@@ -94,7 +94,7 @@ def material(name, base, rough=0.5, metal=0.0, coat=0.0, aniso=0.0, bump=None, s
     return m
 
 
-def rounded_box(name, x, y, w, h, z0, z1, radius, rim=0.0, mat=None, segs=10):
+def rounded_box(name, x, y, w, h, z0, z1, radius, rim=0.0, mat=None, segs=10, rim_segs=6):
     """axis-aligned box in design coords (x,y,w,h), heights in BU; rounded vertical corners, optional rim bevel"""
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
@@ -123,7 +123,8 @@ def rounded_box(name, x, y, w, h, z0, z1, radius, rim=0.0, mat=None, segs=10):
         md2.limit_method = 'ANGLE'
         md2.angle_limit = math.radians(60)
         md2.width = rim * S
-        md2.segments = 4
+        md2.segments = rim_segs
+        md2.profile = 0.6
         md2.harden_normals = False
     if mat:
         ob.data.materials.append(mat)
@@ -132,12 +133,17 @@ def rounded_box(name, x, y, w, h, z0, z1, radius, rim=0.0, mat=None, segs=10):
     return ob
 
 
-def fix_shading(ob):
-    """flat faces stay flat (no smooth-shading streaks across big triangles); only bevels/curves are smoothed"""
+def fix_shading(ob, angle=32.0):
+    """smooth shading only inside curved runs: every edge sharper than `angle` is split, so flat faces never
+    inherit normals from their neighbours (that caused the streaks / gradients on big flat faces)"""
     me = ob.data
     for p in me.polygons:
-        n = p.normal
-        p.use_smooth = not (abs(n.x) > 0.9995 or abs(n.y) > 0.9995 or abs(n.z) > 0.9995)
+        p.use_smooth = True
+    try:
+        me.set_sharp_from_angle(angle=math.radians(angle))
+    except AttributeError:   # Blender < 4.1
+        me.use_auto_smooth = True
+        me.auto_smooth_angle = math.radians(angle)
 
 
 def apply_all(ob):
@@ -176,6 +182,48 @@ def cylinder(name, cx, cy, r, z0, z1, mat=None, verts=96, rim=0.0, r_top=None, r
     for p in ob.data.polygons:
         p.use_smooth = True
     return ob
+
+
+def rounded_ring(x, y, w, h, r, n=10):
+    pts = []
+    corners = [(x + w - r, y + r, -90), (x + w - r, y + h - r, 0), (x + r, y + h - r, 90), (x + r, y + r, 180)]
+    for cx, cy, a0 in corners:
+        for i in range(n + 1):
+            a = math.radians(a0 + 90 * i / n)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
+def tray_cutter(name, x, y, w, h, depth, slope, radius):
+    """frustum-shaped cutter: the pocket gets sloped (chamfered) walls that catch the light"""
+    bot = rounded_ring(x, y, w, h, radius)
+    top = rounded_ring(x - slope, y - slope, w + 2 * slope, h + 2 * slope, radius + slope)
+    bm = bmesh.new()
+    vb = [bm.verts.new((px * S, -py * S, -depth)) for px, py in bot]
+    zt = 0.05
+    vt = [bm.verts.new((px * S, -py * S, zt)) for px, py in top]
+    n = len(vb)
+    bm.faces.new(list(reversed(vb)))
+    bm.faces.new(vt)
+    for i in range(n):
+        j = (i + 1) % n
+        bm.faces.new([vb[i], vb[j], vt[j], vt[i]])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    ob = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(ob)
+    return ob
+
+
+def screw(x, y, r, mat):
+    head = cylinder("screwhead", x, y, r, 0.0, 0.022, mat, verts=48, r_top=r * 0.86, rim=r * 0.25)
+    apply_all(head)
+    a = rounded_box("slotA", x - r * 0.75, y - r * 0.13, r * 1.5, r * 0.26, 0.012, 0.05, 0)
+    b = rounded_box("slotB", x - r * 0.13, y - r * 0.75, r * 0.26, r * 1.5, 0.012, 0.05, 0)
+    boolean_cut(head, [a, b])
+    apply_all(head)
+    fix_shading(head)
+    return head
 
 
 def boolean_cut(target, cutters):
@@ -230,9 +278,12 @@ def lights(cx, cy, span):
         lo.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
         return lo
     k = span * S
-    area("key", (cx * S - 0.8 * k, -cy * S + 0.9 * k, 0.75 * k), 16 * k * k, 0.35 * k, (1.0, 0.96, 0.9))
-    area("fill", (cx * S + 1.1 * k, -cy * S + 0.3 * k, 1.4 * k), 4 * k * k, 1.6 * k, (0.82, 0.88, 1.0))
-    area("top", (cx * S, -cy * S, 2.5 * k), 3 * k * k, 2.0 * k, (1.0, 1.0, 1.0))
+    # key: smaller and a bit lower -> defined bevel highlights and longer, readable shadows (depth)
+    area("key", (cx * S - 0.85 * k, -cy * S + 0.95 * k, 0.62 * k), 17 * k * k, 0.20 * k, (1.0, 0.96, 0.9))
+    area("fill", (cx * S + 1.1 * k, -cy * S + 0.3 * k, 1.4 * k), 3.2 * k * k, 1.6 * k, (0.82, 0.88, 1.0))
+    area("top", (cx * S, -cy * S, 2.5 * k), 1.6 * k * k, 2.0 * k, (1.0, 1.0, 1.0))
+    # low cool rim from the lower right: separates the lower/right edges from the body
+    area("rim", (cx * S + 0.9 * k, -cy * S - 1.0 * k, 0.30 * k), 2.6 * k * k, 0.5 * k, (0.75, 0.84, 1.0))
 
 
 def render(path):
@@ -408,7 +459,7 @@ def build_panel():
     collar = material("collar", (0.05, 0.05, 0.055), rough=0.35, metal=0.4)
 
     T = 0.30  # body thickness (BU); top surface at z = 0
-    body = rounded_box("body", 0, 0, W, H, -T, 0.0, radius=22, rim=4, mat=body_mat)
+    body = rounded_box("body", 0, 0, W, H, -T, 0.0, radius=16, rim=9, mat=body_mat, rim_segs=8)
     apply_all(body)
 
     cutters = []
@@ -420,13 +471,22 @@ def build_panel():
         x = pl["left"] + col * (pl["size"] + pl["gapX"])
         y = pl["top"] + row * (pl["labelH"] + pl["size"] + pl["rowGap"]) + pl["labelH"]
         return x, y, pl["size"], pl["size"]
-    # (pads and buttons sit on the surface: no wells, their own renders carry the shadows)
+    # the pads sit in one shallow tray with chamfered walls (no wells per pad: no dark outlines around them)
+    tx, ty, tw, th = LAY["padTray"]
+    cutters.append(tray_cutter("tray", tx, ty, tw, th, depth=0.055, slope=7.0, radius=10))
     # wheel recess
     wx, wy, wr = LAY["wheel"]
     cutters.append(cylinder("wheelwell", wx, wy, wr + 7, -0.04, 0.05))
     boolean_cut(body, cutters)
     apply_all(body)
     fix_shading(body)
+    # rubber mat on the tray floor (slightly different finish from the satin body)
+    mat_rubber = material("tray_mat", (0.016, 0.016, 0.017), rough=0.86, bump=("noise", 420.0, 0.08), spec=0.25)
+    rounded_box("traymat", tx, ty, tw, th, -0.056, -0.054, radius=10, mat=mat_rubber)
+    # corner screws
+    steel = material("steel", (0.35, 0.35, 0.37), rough=0.32, metal=1.0, bump=("noise", 2000.0, 0.02))
+    for sx, sy in ((15, 15), (W - 15, 15), (15, H - 15), (W - 15, H - 15)):
+        screw(sx, sy, 5.0, steel)
 
     # துடி emblem: raised brushed-metal letters, reading bottom -> top
     emblem(LAY["logo"])
@@ -434,7 +494,7 @@ def build_panel():
     # LCD bezel (raised frame) + glass
     bx, by, bw, bh = LAY["lcdBezel"]
     gx, gy, gw, gh = LAY["lcdGlass"]
-    bez = rounded_box("bezel", bx, by, bw, bh, -0.01, 0.035, radius=12, rim=3, mat=bezel_mat)
+    bez = rounded_box("bezel", bx, by, bw, bh, -0.01, 0.05, radius=12, rim=6, mat=bezel_mat, rim_segs=8)
     apply_all(bez)
     win = rounded_box("bezelwin", gx - 3, gy - 3, gw + 6, gh + 6, -0.02, 0.06, radius=4)
     boolean_cut(bez, [win])
@@ -486,16 +546,34 @@ def element_scene(cx, cy, frame, px, catcher=True):
     return sc
 
 
-def build_pad(pressed):
+def build_pad(pressed, lit=None, name=None):
     size = LAY["pads"]["size"]
     frame = size * 1.2
     element_scene(0, 0, frame, frame * SCALE)
-    rubber = material("rubber", (0.17, 0.17, 0.165) if not pressed else (0.14, 0.14, 0.136), rough=0.86, bump=("noise", 350.0, 0.10), spec=0.25)
-    z1 = 0.16 if not pressed else 0.10
-    pad = rounded_box("pad", -size / 2, -size / 2, size, size, 0.0, z1, radius=4.0, rim=9.0, mat=rubber)
+    base = (0.17, 0.17, 0.165) if not pressed else (0.145, 0.145, 0.14)
+    rubber = material("rubber", base, rough=0.84, bump=("noise", 350.0, 0.10), spec=0.25)
+    bsdf = rubber.node_tree.nodes["Principled BSDF"]
+    set_input(bsdf, ["Sheen Weight", "Sheen"], 0.35)
+    set_input(bsdf, ["Sheen Roughness"], 0.6)
+    if lit is not None:
+        # backlit translucent rubber: colour from inside, strongest in the middle of the pad
+        nt = rubber.node_tree
+        set_input(bsdf, "Base Color", (*[0.35 * base[k] + 0.65 * lit[k] * 0.55 for k in range(3)], 1))
+        set_input(bsdf, ["Emission Color", "Emission"], (*lit, 1))
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        mp = nt.nodes.new("ShaderNodeMapping"); mp.inputs["Scale"].default_value = (1.0 / (size * S * 0.62),) * 3
+        gr = nt.nodes.new("ShaderNodeTexGradient"); gr.gradient_type = 'QUADRATIC_SPHERE'
+        mr = nt.nodes.new("ShaderNodeMath"); mr.operation = 'MULTIPLY_ADD'
+        mr.inputs[1].default_value = 3.2; mr.inputs[2].default_value = 0.9
+        nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
+        nt.links.new(mp.outputs["Vector"], gr.inputs["Vector"])
+        nt.links.new(gr.outputs["Fac"], mr.inputs[0])
+        for nm in ("Emission Strength",):
+            if nm in bsdf.inputs: nt.links.new(mr.outputs[0], bsdf.inputs[nm])
+    z1 = 0.20 if not pressed else 0.13
+    pad = rounded_box("pad", -size / 2, -size / 2, size, size, 0.0, z1, radius=5.0, rim=13.0, mat=rubber, rim_segs=8)
     apply_all(pad); fix_shading(pad)
-    # very slight dish in the middle of the pad top
-    render(os.path.join(OUT, "pad_down.png" if pressed else "pad_up.png"))
+    render(os.path.join(OUT, name or ("pad_down.png" if pressed else "pad_up.png")))
 
 
 def build_knob(red):
@@ -550,6 +628,9 @@ if __name__ == "__main__":
     which = argv[3].split(",") if len(argv) > 3 else ["bg", "pads", "knobs", "wheel", "buttons"]
     if "pads" in which:
         build_pad(False); build_pad(True)
+        red, lime = (1.0, 0.16, 0.07), (0.55, 1.0, 0.10)
+        build_pad(False, red, "pad_lit.png"); build_pad(True, red, "pad_lit_down.png")
+        build_pad(False, lime, "pad_lit_g.png"); build_pad(True, lime, "pad_lit_g_down.png")
     if "knobs" in which:
         build_knob(False); build_knob(True)
     if "wheel" in which:

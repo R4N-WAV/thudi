@@ -123,6 +123,12 @@ struct Ahd
         if (u < hold) return 1.0f;
         return decayShape ((u - hold) / decay, curve);
     }
+    float level() const   // current output including release (for the pad glow)
+    {
+        if (done) return 0.0f;
+        if (releasing) { float x = relT / relTime; return x >= 1.0f ? 0.0f : relLevel * (1.0f - x) * (1.0f - x); }
+        return current();
+    }
     inline float tick()
     {
         if (done) return 0.0f;

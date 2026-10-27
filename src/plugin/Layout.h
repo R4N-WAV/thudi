@@ -37,7 +37,15 @@ inline juce::Rectangle<float> pad (int index)
     return { x, y, padSize, padSize };
 }
 inline juce::Rectangle<float> padLabel (int index) { auto p = pad (index); return { p.getX(), p.getY() - padLabelH, p.getWidth(), padLabelH - 5.0f }; }
-inline juce::Point<float> padLed (int index) { auto p = pad (index); return { p.getRight() - 5.0f, p.getY() - padLabelH + 6.0f }; }
+// mode keys under the plaque
+inline juce::Rectangle<float> soloButton()   { return { 52.0f, 426.0f, 96.0f, 30.0f }; }
+inline juce::Rectangle<float> monoButton()   { return { 52.0f, 466.0f, 46.0f, 26.0f }; }
+inline juce::Rectangle<float> glideButton()  { return { 102.0f, 466.0f, 46.0f, 26.0f }; }
+inline juce::Rectangle<float> gaerroButton() { return { 52.0f, 504.0f, 96.0f, 30.0f }; }
+// GÆRRO-only knobs, under the emblem
+inline juce::Point<float> vinylKnob() { return { 70.0f, 1112.0f }; }
+inline juce::Point<float> dirtKnob()  { return { 132.0f, 1112.0f }; }
+constexpr float gaerroKnobR = 24.0f;
 
 inline juce::Rectangle<float> logo() { return { 34.0f, 580.0f, 150.0f, 450.0f }; }
 } // namespace thudi::layout

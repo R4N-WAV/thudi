@@ -34,9 +34,27 @@ void Voice::setupBody (const PadSound& s, float ratio)
     }
 }
 
-void Voice::start (const PadSound& s, float pitchSemis, float velocity, uint32_t seed)
+void Voice::start (const PadSound& s, float pitchSemis, float velocity, uint32_t seed, SamplePtr smp)
 {
-    active = true; releasing = false; ageSamples = 0; t = 0;
+    active = true; releasing = false; ageSamples = 0; t = 0; lightLevel = 0;
+    isSample = (int) std::round (s[P::Model]) == (int) Model::Sample;
+    sample = isSample ? std::move (smp) : SamplePtr();
+    if (isSample)
+    {
+        if (! sample || sample->size() < 4) { active = false; return; }
+        const double len = (double) sample->size() - 2.0;
+        double a = clampf (s[P::SmpStart], 0.0f, 1.0f) * len, b = clampf (s[P::SmpEnd], 0.0f, 1.0f) * len;
+        if (b < a + 16) b = std::min (len, a + 16);
+        smpReverse = std::round (s[P::SmpReverse]) >= 1.0f;
+        smpStartPos = a; smpEndPos = b; smpPos = smpReverse ? b : a;
+        const float atk = std::max (0.0005f, s[P::SmpAttack] * 0.001f);
+        smpAmp = s[P::SmpAttack] < 0.05f ? 1.0f : 0.0f; smpAttackInc = 1.0f / (atk * sr);
+        smpReleasing = false; smpRelInc = 0; smpLp.reset(); smpLpHz = -1;
+        const float vs = s[P::VelSens], v = clampf (velocity, 0.0f, 1.0f);
+        velGain = (1.0f - vs) + vs * std::sqrt (v);
+        curSemis = targetSemis = pitchSemis; glideCoef = 1.0f; fineSemis = s[P::Fine] * 0.01f;
+        return;
+    }
     rng.setSeed (seed);
     drifter.prepare (sr, 1.5f + 2.0f * rng.uni(), seed * 7u + 3u);
     const float vs = s[P::VelSens];
@@ -90,13 +108,50 @@ void Voice::release (float seconds)
 {
     if (! active) return;
     releasing = true;
+    if (isSample) { smpReleasing = true; smpRelInc = 1.0f / (std::max (0.0005f, seconds) * sr); return; }
     toneEnv.release (seconds); noiseEnv.release (seconds); metalEnv.release (seconds);
     if (seconds < 0.01f) { for (int m = 0; m < 2; ++m) { bY1[m] *= 0.2f; bY2[m] *= 0.2f; } bodyOn = false; }
+}
+
+void Voice::renderSample (const PadSound& s, float* out, int n)
+{
+    const auto& d = sample->data;
+    const double rateRatio = sample->rate / (double) sr;
+    const float cutoff = s[P::SmpCutoff], q = 0.6f + s[P::SmpReso] * 10.0f;
+    const bool filt = cutoff < 19500.0f;
+    if (filt && (std::abs (cutoff - smpLpHz) > 0.5f || std::abs (q - smpQ) > 0.001f)) { smpLp.set (cutoff, q, sr); smpLpHz = cutoff; smpQ = q; }
+    const float fade = std::max (1.0f, s[P::SmpRelease] * 0.001f * sr);  // fade before the slice end (no clicks)
+    float lastEnv = 0;
+    for (int i = 0; i < n; ++i)
+    {
+        curSemis += glideCoef * (targetSemis - curSemis);
+        const double inc = (double) s[P::SmpSpeed] * (double) semis (curSemis + fineSemis) * rateRatio;
+        // 4-point Hermite interpolation
+        const long ip = (long) smpPos; const float fr = (float) (smpPos - (double) ip);
+        auto at = [&] (long k) { k = std::max (0L, std::min ((long) d.size() - 1, k)); return d[(size_t) k]; };
+        const float y0 = at (ip - 1), y1 = at (ip), y2 = at (ip + 1), y3 = at (ip + 2);
+        const float c1 = 0.5f * (y2 - y0), c2 = y0 - 2.5f * y1 + 2.0f * y2 - 0.5f * y3, c3 = 0.5f * (y3 - y0) + 1.5f * (y1 - y2);
+        float x = ((c3 * fr + c2) * fr + c1) * fr + y1;
+        // envelope: attack, fade near the end, release
+        if (smpAmp < 1.0f && ! smpReleasing) smpAmp = std::min (1.0f, smpAmp + smpAttackInc);
+        const double left = smpReverse ? (smpPos - smpStartPos) : (smpEndPos - smpPos);
+        float env = smpAmp * (float) std::min (1.0, left / (double) fade);
+        if (smpReleasing) { smpAmp -= smpRelInc; if (smpAmp <= 0) { smpAmp = 0; active = false; } env = std::min (env, smpAmp); }
+        if (filt) x = smpLp.lp (x);
+        out[i] += x * env * velGain;
+        lastEnv = env;
+        smpPos += smpReverse ? -inc : inc;
+        if ((! smpReverse && smpPos >= smpEndPos) || (smpReverse && smpPos <= smpStartPos)) { active = false; break; }
+        if (! active) break;
+    }
+    lightLevel = lastEnv * velGain;
+    t += (float) n * invSr; ageSamples += n;
 }
 
 void Voice::render (const PadSound& s, float* out, int n)
 {
     if (! active) return;
+    if (isSample) { if (sample) renderSample (s, out, n); else active = false; return; }
 
     const float toneLevel = s[P::ToneLevel], noiseLevel = s[P::NoiseLevel];
     const float metalLevel = s[P::MetalLevel], bodyLevel = s[P::BodyLevel];
@@ -245,6 +300,13 @@ void Voice::render (const PadSound& s, float* out, int n)
         t += invSr; ++ageSamples;
     }
 
-    if (! anyAlive) active = false;
+    // glow follows the sound's own envelope (strongest layer that is in use)
+    float lv = 0.0f;
+    if (toneLevel > 0.0001f)  lv = std::max (lv, toneEnv.level() * std::min (1.0f, toneLevel * 1.5f));
+    if (noiseLevel > 0.0001f) lv = std::max (lv, noiseEnv.level() * std::min (1.0f, noiseLevel * 1.5f));
+    if (metalLevel > 0.0001f) lv = std::max (lv, metalEnv.level() * std::min (1.0f, metalLevel * 1.5f));
+    if (numBursts > 1 && noiseLevel > 0.0001f && t < burstTimes[numBursts - 1] + 0.01f) lv = std::max (lv, 0.9f);
+    lightLevel = lv * velGain;
+    if (! anyAlive) { active = false; lightLevel = 0; }
 }
 } // namespace thudi

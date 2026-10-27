@@ -6,7 +6,7 @@
     "master": 0,
     "bus_drive": 0.05,
     "oversampling": 1,
-    "keys_pad": 2,
+    "keys_pad": 0,
     "keys_root": 60
   },
   "pads": [
@@ -80,7 +80,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 36
     },
@@ -154,7 +162,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 37
     },
@@ -228,7 +244,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 38
     },
@@ -302,7 +326,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 39
     },
@@ -376,7 +408,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 40
     },
@@ -450,7 +490,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 41
     },
@@ -524,7 +572,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 42
     },
@@ -598,7 +654,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 43
     },
@@ -672,7 +736,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 44
     },
@@ -746,7 +818,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 45
     },
@@ -820,7 +900,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 46
     },
@@ -894,7 +982,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 47
     },
@@ -968,7 +1064,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 48
     },
@@ -1042,7 +1146,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 49
     },
@@ -1116,14 +1228,22 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 50
     },
     {
-      "label": "808 LONG",
+      "label": "HI CONGA",
       "params": {
-        "model": 1,
+        "model": 6,
         "level": 0.0,
         "pan": 0.0,
         "tune": 0.0,
@@ -1132,27 +1252,27 @@
         "choke": 0.0,
         "output": 0.0,
         "link": 0.0,
-        "play_mode": 1,
-        "poly": 0,
-        "glide": 80,
+        "play_mode": 0.0,
+        "poly": 0.0,
+        "glide": 0.0,
         "release": 40.0,
         "low_cut": 10.0,
         "high_cut": 22000.0,
         "tone_level": 1.0,
         "tone_shape": 0.0,
-        "tone_pitch": 49,
-        "sweep_amt": 3,
-        "sweep_time": 50,
+        "tone_pitch": 440,
+        "sweep_amt": 4,
+        "sweep_time": 20,
         "sweep_curve": 0.0,
-        "growl": 0.15,
+        "growl": 0.0,
         "fm_amt": 0.0,
         "fm_ratio": 1.5,
         "fm_decay": 60.0,
-        "tone_attack": 2,
-        "tone_hold": 400,
-        "tone_decay": 3000,
-        "tone_curve": -0.2,
-        "tone_lp": 3000,
+        "tone_attack": 0.0,
+        "tone_hold": 0.0,
+        "tone_decay": 140,
+        "tone_curve": 0.35,
+        "tone_lp": 20000.0,
         "noise_level": 0.0,
         "noise_color": 0.0,
         "noise_filter": 1.0,
@@ -1179,8 +1299,8 @@
         "body_ratio": 1.6,
         "body_decay": 150.0,
         "body_excite": 0.5,
-        "drive": 0.12,
-        "asym": 0.2,
+        "drive": 0.0,
+        "asym": 0.0,
         "crush_mix": 0.0,
         "crush_rate": 48000.0,
         "crush_bits": 16.0,
@@ -1190,7 +1310,15 @@
         "chorus_depth": 2.5,
         "mono_below": 120.0,
         "drift": 0.2,
-        "tape": 0.0
+        "tape": 0.0,
+        "smp_start": 0.0,
+        "smp_end": 1.0,
+        "smp_speed": 1.0,
+        "smp_attack": 0.0,
+        "smp_release": 8.0,
+        "smp_cutoff": 20000.0,
+        "smp_reso": 0.1,
+        "smp_reverse": 0.0
       },
       "note": 51
     }

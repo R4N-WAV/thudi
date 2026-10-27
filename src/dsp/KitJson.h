@@ -90,14 +90,16 @@ inline void readParams (const Value* params, PadSound& snd)
             if (v->type == Value::Num) snd.v[(size_t) k] = (float) v->num;
 }
 
-struct KitPad { std::string label; int note = 36; PadSound sound; };
+struct KitPad { std::string label; int note = 36; PadSound sound; std::string sample; };
 struct Kit
 {
     std::string name = "Init";
     float global[kNumGlobalParams] {};
     KitPad pads[kNumPads];
+    KitPad solo;            // the solo-mode sound (one sound across the keyboard)
     Kit()
     {
+        solo.label = ""; solo.note = 60;
         for (int g = 0; g < kNumGlobalParams; ++g) global[g] = globalTable()[(size_t) g].def;
         for (int p = 0; p < kNumPads; ++p) { pads[p].note = 36 + p; pads[p].label = "PAD " + std::to_string (p + 1); }
     }
@@ -118,7 +120,14 @@ inline bool parseKit (const std::string& text, Kit& kit)
             if (auto* l = pv.get ("label")) kit.pads[p].label = l->str;
             if (auto* n = pv.get ("note")) kit.pads[p].note = (int) n->num;
             readParams (pv.get ("params"), kit.pads[p].sound);
+            if (auto* sm = pv.get ("sample")) kit.pads[p].sample = sm->str;
         }
+    if (auto* so = root.get ("solo"))
+    {
+        if (auto* l = so->get ("label")) kit.solo.label = l->str;
+        readParams (so->get ("params"), kit.solo.sound);
+        if (auto* sm = so->get ("sample")) kit.solo.sample = sm->str;
+    }
     return true;
 }
 
@@ -128,6 +137,7 @@ inline bool parsePad (const std::string& text, KitPad& pad)
     if (! ps.ok || root.type != Value::Obj) return false;
     if (auto* l = root.get ("label")) pad.label = l->str;
     readParams (root.get ("params"), pad.sound);
+    if (auto* sm = root.get ("sample")) pad.sample = sm->str;
     return true;
 }
 
@@ -158,12 +168,17 @@ inline std::string writeKit (const Kit& kit)
     o += "\n  },\n  \"pads\": [";
     for (int p = 0; p < kNumPads; ++p)
         o += std::string (p ? "," : "") + "\n    {\n      \"label\": \"" + esc (kit.pads[p].label) + "\",\n      \"note\": " + std::to_string (kit.pads[p].note)
+           + (kit.pads[p].sample.empty() ? std::string() : ",\n      \"sample\": \"" + esc (kit.pads[p].sample) + "\"")
            + ",\n      \"params\": " + paramsJson (kit.pads[p].sound, "      ") + "\n    }";
-    return o + "\n  ]\n}\n";
+    o += "\n  ],\n  \"solo\": {\n    \"label\": \"" + esc (kit.solo.label) + "\""
+       + (kit.solo.sample.empty() ? std::string() : ",\n    \"sample\": \"" + esc (kit.solo.sample) + "\"")
+       + ",\n    \"params\": " + paramsJson (kit.solo.sound, "    ") + "\n  }";
+    return o + "\n}\n";
 }
 
 inline std::string writePad (const KitPad& pad)
 {
-    return "{\n  \"format\": \"thudi-pad\",\n  \"version\": 1,\n  \"label\": \"" + esc (pad.label) + "\",\n  \"params\": " + paramsJson (pad.sound, "  ") + "\n}\n";
+    return "{\n  \"format\": \"thudi-pad\",\n  \"version\": 1,\n  \"label\": \"" + esc (pad.label) + "\","
+         + (pad.sample.empty() ? std::string() : "\n  \"sample\": \"" + esc (pad.sample) + "\",") + "\n  \"params\": " + paramsJson (pad.sound, "  ") + "\n}\n";
 }
 } // namespace thudi::json

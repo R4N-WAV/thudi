@@ -2,6 +2,7 @@
 #include "ParamFormat.h"
 #include "PresetManager.h"
 #include "PluginEditor.h"
+#include "Models.h"
 
 using namespace thudi;
 
@@ -32,13 +33,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout ThudiProcessor::createLayout
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     for (int g = 0; g < kNumGlobalParams; ++g)
         layout.add (makeParam (globalParamId ((G) g), juce::String (globalTable()[(size_t) g].name), globalTable()[(size_t) g]));
-    for (int pad = 0; pad < kNumPads; ++pad)
+    for (int pad = 0; pad < kNumSlots; ++pad)
     {
-        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("pad" + twoDigits (pad + 1), "Pad " + juce::String (pad + 1), " | ");
+        const juce::String nm = pad == kSoloSlot ? juce::String ("Solo") : "Pad " + juce::String (pad + 1);
+        auto group = std::make_unique<juce::AudioProcessorParameterGroup> ("pad" + twoDigits (pad + 1), nm, " | ");
         for (int k = 0; k < kNumPadParams; ++k)
         {
             const auto& pi = paramTable()[(size_t) k];
-            group->addChild (makeParam (padParamId (pad, (P) k), "Pad " + juce::String (pad + 1) + " " + pi.name, pi));
+            group->addChild (makeParam (padParamId (pad, (P) k), nm + " " + pi.name, pi));
         }
         layout.add (std::move (group));
     }
@@ -57,7 +59,8 @@ ThudiProcessor::ThudiProcessor()
     : juce::AudioProcessor (makeBuses()),
       apvts (*this, nullptr, "PARAMS", createLayout())
 {
-    for (int pad = 0; pad < kNumPads; ++pad)
+    formats.registerBasicFormats();
+    for (int pad = 0; pad < kNumSlots; ++pad)
         for (int k = 0; k < kNumPadParams; ++k)
         {
             auto id = padParamId (pad, (P) k);
@@ -88,6 +91,7 @@ ThudiProcessor::~ThudiProcessor()
 void ThudiProcessor::ensureMeta()
 {
     if (! meta.hasProperty ("kitName")) meta.setProperty ("kitName", "Init", nullptr);
+    if (! meta.hasProperty ("soloLabel")) meta.setProperty ("soloLabel", "", nullptr);
     for (int i = 0; i < kNumPads; ++i)
     {
         auto pad = meta.getChildWithProperty ("index", i);
@@ -161,7 +165,7 @@ void ThudiProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiB
     if (notesDirty.exchange (false))
         for (int i = 0; i < kNumPads; ++i) engine.setPadNote (i, padNotesAtomic[(size_t) i].load());
 
-    for (int pad = 0; pad < kNumPads; ++pad)
+    for (int pad = 0; pad < kNumSlots; ++pad)
     {
         auto& snd = engine.pad (pad);
         for (int k = 0; k < kNumPadParams; ++k) snd.v[(size_t) k] = padRaw[(size_t) pad][(size_t) k]->load();
@@ -254,15 +258,21 @@ void ThudiProcessor::setPadSound (int pad, const PadSound& s)
             setPadValue (pad, (P) k, s.v[(size_t) k]);
 }
 
-juce::String ThudiProcessor::getPadLabel (int pad) const { return meta.getChildWithProperty ("index", pad).getProperty ("label").toString(); }
+juce::String ThudiProcessor::getPadLabel (int pad) const
+{
+    if (pad == kSoloSlot) return getSoloLabel();
+    return meta.getChildWithProperty ("index", pad).getProperty ("label").toString();
+}
 void ThudiProcessor::setPadLabel (int pad, const juce::String& label)
 {
+    if (pad == kSoloSlot) { setSoloLabel (label); return; }
     meta.getChildWithProperty ("index", pad).setProperty ("label", label.toUpperCase().substring (0, 16), nullptr);
     if (onMetaChanged) onMetaChanged();
 }
-int ThudiProcessor::getPadNote (int pad) const { return (int) meta.getChildWithProperty ("index", pad).getProperty ("note", 36 + pad); }
+int ThudiProcessor::getPadNote (int pad) const { if (pad == kSoloSlot) return 60; return (int) meta.getChildWithProperty ("index", pad).getProperty ("note", 36 + pad); }
 void ThudiProcessor::setPadNote (int pad, int note)
 {
+    if (pad < 0 || pad >= kNumPads) return;
     meta.getChildWithProperty ("index", pad).setProperty ("note", note, nullptr);
     padNotesAtomic[(size_t) pad].store (note); notesDirty.store (true);
     if (onMetaChanged) onMetaChanged();
@@ -293,7 +303,99 @@ void ThudiProcessor::setStateInformation (const void* data, int size)
     ensureMeta();
     for (int i = 0; i < kNumPads; ++i) padNotesAtomic[(size_t) i].store (getPadNote (i));
     notesDirty.store (true);
+    restoreSamplesFromMeta();
     if (onMetaChanged) juce::MessageManager::callAsync ([this] { if (onMetaChanged) onMetaChanged(); });
+}
+
+// ---------------------------------------------------------------- samples
+juce::File ThudiProcessor::samplesDir()
+{
+    return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("R4N").getChildFile ("Thudi").getChildFile ("Samples");
+}
+
+SamplePtr ThudiProcessor::loadSampleFile (const juce::File& f, juce::String& error)
+{
+    auto key = f.getFullPathName();
+    if (auto it = sampleCache.find (key); it != sampleCache.end()) return it->second;
+    std::unique_ptr<juce::AudioFormatReader> reader (formats.createReaderFor (f));
+    if (reader == nullptr) { error = "Can't read " + f.getFileName(); return {}; }
+    const auto len = reader->lengthInSamples;
+    if (len <= 0 || len > (juce::int64) (reader->sampleRate * 60 * 10)) { error = "Use a file shorter than 10 minutes"; return {}; }
+    juce::AudioBuffer<float> buf ((int) juce::jmax (1u, reader->numChannels), (int) len);
+    reader->read (&buf, 0, (int) len, 0, true, true);
+    auto sd = std::make_shared<SampleData>();
+    sd->rate = reader->sampleRate; sd->name = f.getFileNameWithoutExtension().toStdString(); sd->path = key.toStdString();
+    sd->data.resize ((size_t) len);
+    const float g = 1.0f / (float) buf.getNumChannels();
+    for (int c = 0; c < buf.getNumChannels(); ++c)
+    {
+        auto* src = buf.getReadPointer (c);
+        for (int i = 0; i < (int) len; ++i) sd->data[(size_t) i] += src[i] * g;
+    }
+    SamplePtr ptr = sd;
+    sampleCache[key] = ptr;
+    return ptr;
+}
+
+void ThudiProcessor::setSlotSample (int slot, SamplePtr s)
+{
+    slotSamples[(size_t) slot] = s;
+    engine.setPadSample (slot, s);
+    const juce::String path = s ? juce::String (s->path) : juce::String();
+    if (slot == kSoloSlot) meta.setProperty ("soloSample", path, nullptr);
+    else meta.getChildWithProperty ("index", slot).setProperty ("sample", path, nullptr);
+}
+
+void ThudiProcessor::restoreSamplesFromMeta()
+{
+    for (int slot = 0; slot < kNumSlots; ++slot)
+    {
+        const juce::String path = slot == kSoloSlot ? meta.getProperty ("soloSample", "").toString()
+                                                    : meta.getChildWithProperty ("index", slot).getProperty ("sample", "").toString();
+        SamplePtr s;
+        if (path.isNotEmpty())
+        {
+            juce::String err;
+            juce::File f (path);
+            if (! f.existsAsFile()) f = samplesDir().getChildFile (juce::File (path).getFileName()); // moved computer / folder
+            if (f.existsAsFile()) s = loadSampleFile (f, err);
+        }
+        slotSamples[(size_t) slot] = s;
+        engine.setPadSample (slot, s);
+    }
+}
+
+int ThudiProcessor::chopFileOntoPads (const juce::File& file, int numSlices, int firstPad, juce::String& error)
+{
+    firstPad = juce::jlimit (0, kNumPads - 1, firstPad);
+    numSlices = juce::jlimit (1, kNumPads - firstPad, numSlices);
+    // keep a copy next to the user's presets so the kit still finds it later
+    auto dir = samplesDir(); dir.createDirectory();
+    auto target = dir.getChildFile (file.getFileName());
+    if (target != file && ! (target.existsAsFile() && target.getSize() == file.getSize()))
+    {
+        if (target.existsAsFile()) target = dir.getNonexistentChildFile (file.getFileNameWithoutExtension(), file.getFileExtension(), false);
+        if (! file.copyFileTo (target)) target = file;
+    }
+    auto s = loadSampleFile (target, error);
+    if (! s) return 0;
+    auto pts = chopPoints (*s, numSlices);
+    const double len = (double) s->size();
+    for (int i = 0; i < (int) pts.size(); ++i)
+    {
+        const double a = (double) pts[(size_t) i] / len;
+        const double b = i + 1 < (int) pts.size() ? (double) pts[(size_t) i + 1] / len : 1.0;
+        auto snd = initSoundForModel ((int) Model::Sample);
+        snd[P::SmpStart] = (float) a; snd[P::SmpEnd] = (float) b;
+        snd[P::Choke] = 0;
+        const int pad = firstPad + i;
+        snd[P::Output] = padValue (pad, P::Output);
+        setPadSound (pad, snd);
+        setPadLabel (pad, "CHOP " + juce::String (i + 1));
+        setSlotSample (pad, s);
+    }
+    if (numSlices > 1) setKitName (juce::String (s->name).toUpperCase().substring (0, 20));
+    return (int) pts.size();
 }
 
 juce::AudioProcessorEditor* ThudiProcessor::createEditor()

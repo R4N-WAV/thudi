@@ -26,6 +26,21 @@ ThudiLookAndFeel::ThudiLookAndFeel()
     setColour (juce::ResizableWindow::backgroundColourId, colours::body);
 }
 
+void ThudiLookAndFeel::drawCornerResizer (juce::Graphics& g, int w, int h, bool over, bool dragging)
+{
+    // a small moulded grip (dots), not the default diagonal lines
+    const float a = over || dragging ? 0.45f : 0.18f;
+    for (int row = 0; row < 3; ++row)
+        for (int col = 2 - row; col < 3; ++col)
+        {
+            const float x = (float) w - 4.0f - (float) (2 - col) * 4.5f, y = (float) h - 4.0f - (float) row * 4.5f;
+            g.setColour (juce::Colours::black.withAlpha (0.6f));
+            g.fillEllipse (x - 1.2f + 0.6f, y - 1.2f + 0.6f, 2.4f, 2.4f);
+            g.setColour (colours::print.withAlpha (a));
+            g.fillEllipse (x - 1.2f, y - 1.2f, 2.4f, 2.4f);
+        }
+}
+
 juce::Slider::SliderLayout ThudiLookAndFeel::getSliderLayout (juce::Slider& s)
 {
     juce::Slider::SliderLayout l;
@@ -105,13 +120,31 @@ void ThudiLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& b,
         g.fillRoundedRectangle (r.reduced (1.0f).translated (0, down ? 1.0f : 0.0f), 4.0f);
     }
     if (over) { g.setColour (juce::Colours::white.withAlpha (0.06f)); g.fillRoundedRectangle (r.reduced (2.0f), 4.0f); }
+    if (b.getClickingTogglesState())
+    {   // status LED set into the key (left side)
+        const bool on = b.getToggleState();
+        auto led = juce::Rectangle<float> (5.0f, 5.0f).withCentre ({ r.getX() + 10.0f, r.getCentreY() + (down ? 1.0f : 0.0f) });
+        const auto onCol = b.getProperties()["ledColour"].isVoid() ? juce::Colour (0xffff3b2a) : juce::Colour::fromString (b.getProperties()["ledColour"].toString());
+        if (on)
+        {
+            g.setGradientFill (juce::ColourGradient (onCol.withAlpha (0.45f), led.getCentreX(), led.getCentreY(), onCol.withAlpha (0.0f), led.getCentreX() + 9.0f, led.getCentreY(), true));
+            g.fillEllipse (led.expanded (6.0f));
+        }
+        g.setColour (juce::Colours::black.withAlpha (0.75f)); g.fillEllipse (led.expanded (1.2f));
+        g.setColour (on ? onCol : onCol.darker (0.9f).withMultipliedSaturation (0.5f));
+        g.fillEllipse (led);
+        g.setColour (juce::Colours::white.withAlpha (on ? 0.55f : 0.12f));
+        g.fillEllipse (led.reduced (1.6f).translated (-0.6f, -0.6f));
+    }
 }
 
 void ThudiLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& b, bool, bool down)
 {
     g.setFont (assets::labelFont ((float) b.getHeight() * 0.48f));
     g.setColour (juce::Colour (0xff222224).withAlpha (b.isEnabled() ? 0.9f : 0.4f));
-    g.drawFittedText (b.getButtonText(), b.getLocalBounds().translated (0, down ? 1 : 0), juce::Justification::centred, 1);
+    auto area = b.getLocalBounds().translated (0, down ? 1 : 0);
+    if (b.getClickingTogglesState()) area = area.withTrimmedLeft (12);
+    g.drawFittedText (b.getButtonText(), area, juce::Justification::centred, 1);
 }
 
 juce::Font ThudiLookAndFeel::getTextButtonFont (juce::TextButton&, int h) { return assets::labelFont ((float) h * 0.48f); }

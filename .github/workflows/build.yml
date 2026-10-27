@@ -32,7 +32,11 @@ jobs:
 
       - name: Build plugin, tests and tools
         shell: bash
-        run: cmake --build build --config Release --parallel --target Thudi_VST3 thudi_snapshot thudi_render 2>&1 | tee out/build.log; exit ${PIPESTATUS[0]}
+        run: cmake --build build --config Release --parallel --target Thudi_VST3 thudi_snapshot thudi_render thudi_dsp_tests 2>&1 | tee out/build.log; exit ${PIPESTATUS[0]}
+
+      - name: Engine checks (empty pads, pad glow, solo, sample chops, GAERRO noise floor)
+        shell: bash
+        run: ./build/Release/thudi_dsp_tests.exe 2>&1 | tee out/dsp_tests.log; exit ${PIPESTATUS[0]}
 
       - name: Headless plugin checks + GUI screenshots
         shell: bash

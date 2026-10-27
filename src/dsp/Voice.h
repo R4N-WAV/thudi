@@ -1,6 +1,7 @@
 // Thudi — one drum voice: tone + noise + metal + body layers
 #pragma once
 #include "DspUtil.h"
+#include "SampleData.h"
 #include "ThudiParams.h"
 
 namespace thudi
@@ -10,7 +11,7 @@ class Voice
 public:
     void prepare (float sampleRate);
     // pitchSemis: tune + keys offset in semitones (fine handled inside)
-    void start (const PadSound& s, float pitchSemis, float velocity, uint32_t seed);
+    void start (const PadSound& s, float pitchSemis, float velocity, uint32_t seed, SamplePtr sample = {});
     void glideTo (float pitchSemis, float glideMs);      // legato (808 slides)
     void release (float seconds);                        // gate mode note-off / choke
     void kill() { release (0.004f); }
@@ -19,6 +20,8 @@ public:
     bool isActive() const { return active; }
     bool isReleasing() const { return releasing; }
     int  age() const { return ageSamples; }
+    float light() const { return active ? lightLevel : 0.0f; } // envelope level for the pad's glow (0..1)
+    int lightPad = -1;   // which pad glows for this voice (solo mode plays across the pads)
 
 private:
     float sr = 48000.0f, invSr = 1.0f / 48000.0f;
@@ -53,6 +56,14 @@ private:
     float bY1[2] {}, bY2[2] {}, bA1[2] {}, bA2[2] {}, bGain[2] {};
     float bodyExcEnv = 0, bodyExcCoef = 0; bool bodyOn = false;
 
+    // sample playback (model Sample)
+    SamplePtr sample; bool isSample = false;
+    double smpPos = 0, smpEndPos = 0, smpStartPos = 0; bool smpReverse = false;
+    float smpAmp = 0, smpAttackInc = 1, smpRelInc = 0; bool smpReleasing = false;
+    Svf smpLp; float smpLpHz = -1, smpQ = -1;
+    float lightLevel = 0;
+
     void setupBody (const PadSound& s, float ratio);
+    void renderSample (const PadSound& s, float* out, int n);
 };
 } // namespace thudi

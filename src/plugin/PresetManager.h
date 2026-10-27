@@ -27,6 +27,7 @@ public:
     static juce::StringArray padCategories();
 
     bool loadDefaultKit();
+    void initKit();               // empty machine
     bool loadKit (const Entry&);
     bool saveKit (const juce::String& name);
     bool loadPad (int pad, const Entry&);
@@ -53,4 +54,5 @@ private:
     ThudiProcessor& proc;
     juce::String clipboard;
     juce::String readEntry (const Entry&) const;
+    void restoreSample (int slot, const std::string& path);
 };
