@@ -304,7 +304,8 @@ ThudiEditor::ThudiEditor (ThudiProcessor& p)
     gaerroButton.onClick = [this] { setGaerro (gaerroButton.getToggleState(), true); };
     content.onPlaqueDoubleClick = [this] { revealGaerroButton (true); };
     content.onSoloLabelClick = [this] { showSoloMenu(); };
-    gaerroButtonShown = (bool) proc.meta.getProperty ("gaerroRevealed", false) || proc.gaerroOn();
+    gaerroButtonShown = (bool) proc.meta.getProperty ("gaerroRevealed", false) || proc.gaerroOn()
+                        || PresetManager::userRoot().getChildFile (".gaerro").existsAsFile();   // found once = found for good
     gaerroButtonAnim = gaerroButtonShown ? 1.0f : 0.0f;
     layoutModeButtons();
 
@@ -433,6 +434,11 @@ void ThudiEditor::revealGaerroButton (bool animate)
     if (gaerroButtonShown) { if (gaerroButtonAnim >= 1.0f) lcd.flash ("..."); return; }
     gaerroButtonShown = true;
     proc.meta.setProperty ("gaerroRevealed", true, nullptr);
+    {
+        auto f = PresetManager::userRoot().getChildFile (".gaerro");
+        f.getParentDirectory().createDirectory();
+        f.replaceWithText ("unlocked\n");
+    }
     gaerroButtonAnim = animate ? 0.001f : 1.0f;
     layoutModeButtons();
 }

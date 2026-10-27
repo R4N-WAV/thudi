@@ -220,6 +220,9 @@ static int makeSiteShots (const juce::File& dir)
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI gui;
+    // the GÆRRO key stays hidden in shots unless a check reveals it on purpose
+    PresetManager::userRoot().getChildFile (".gaerro").deleteFile();
+    struct Hide { ~Hide() { PresetManager::userRoot().getChildFile (".gaerro").deleteFile(); } } hideAfter;
     if (argc > 2 && juce::String (argv[1]) == "--site-shots")
         return makeSiteShots (juce::File (juce::String (argv[2])));
     if (argc > 2 && juce::String (argv[1]) == "--wizard-art")

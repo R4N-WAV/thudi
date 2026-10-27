@@ -252,17 +252,18 @@ void LcdDisplay::paintSmoke (juce::Graphics& g, juce::Rectangle<float> r)
     block (x0 + filterW, cy - h / 2, paperEnd - x0 - filterW, h, colours::lcdInk);
     block (x0 + filterW, cy + h / 2 - px, paperEnd - x0 - filterW, px, colours::lcdDim);
     // ash + ember
-    const float ashLen = 6.0f + 10.0f * std::fmod (burn * 3.0f, 1.0f);
-    block (paperEnd, cy - h / 2 + px, ashLen, h - 2 * px, colours::lcdDim.withAlpha (0.7f));
-    for (float y = cy - h / 2 + px; y < cy + h / 2 - px; y += px)
-        if (((int) (y / px) + smokeSeed) % 3 == 0) dot (paperEnd + ashLen - px, y, colours::lcdBg2);
+    // ash: grey checker that grows, then drops off
+    const float ashLen = 6.0f + 12.0f * std::fmod (burn * 3.0f, 1.0f);
+    for (float x = paperEnd + px; x < paperEnd + ashLen; x += px)
+        for (float y = cy - h / 2 + px; y < cy + h / 2; y += px)
+            dot (x, y, (((int) (x / px) + (int) (y / px) + smokeSeed) % 2) ? colours::lcdDim : colours::lcdBg2.brighter (0.4f));
+    // ember: flares on every pull
     const float glow = 0.55f + 0.45f * pull;
-    block (paperEnd - px, cy - h / 2 + px, px * 2, h - 2 * px, colours::lcdInk.withAlpha (glow));
-    if (pull > 0.25f)
-    {
-        g.setColour (colours::lcdInk.withAlpha (0.18f * pull));
-        g.fillEllipse (paperEnd - 14.0f, cy - 16.0f, 30.0f, 32.0f);
-    }
+    g.setColour (colours::lcdInk.withAlpha (0.10f + 0.25f * pull));
+    g.fillEllipse (paperEnd - 16.0f, cy - 18.0f, 34.0f, 36.0f);
+    block (paperEnd - px * 2, cy - h / 2, px * 3, h, colours::lcdInk.withAlpha (glow));
+    for (float y = cy - h / 2; y < cy + h / 2; y += px)
+        if (juce::Random ((int) (t * 30.0f) + (int) y).nextFloat() < 0.35f + 0.4f * pull) dot (paperEnd + px, y, colours::lcdInk);
     // falling ash bits
     juce::Random rnd (smokeSeed);
     for (int i = 0; i < 6; ++i)
@@ -273,7 +274,7 @@ void LcdDisplay::paintSmoke (juce::Graphics& g, juce::Rectangle<float> r)
              cy + h / 2 + age * age * 160.0f, colours::lcdDim);
     }
     // smoke: dots rising from the ember, curling with a slow sine; thicker clouds after each pull (exhale)
-    for (int i = 0; i < 90; ++i)
+    for (int i = 0; i < 220; ++i)
     {
         const float born = rnd.nextFloat() * T, life = 0.9f + rnd.nextFloat() * 0.8f, age = t - born;
         if (age < 0.0f || age > life) continue;
@@ -285,7 +286,8 @@ void LcdDisplay::paintSmoke (juce::Graphics& g, juce::Rectangle<float> r)
         if (y < 30.0f) continue;
         const auto c = colours::lcdInk.withAlpha (0.85f * (1.0f - k));
         dot (x, y, c);
-        if (k > 0.35f) { dot (x + px, y, c.withMultipliedAlpha (0.6f)); dot (x, y - px, c.withMultipliedAlpha (0.5f)); }
+        dot (x + px, y, c.withMultipliedAlpha (0.7f));
+        if (k > 0.3f) { dot (x, y - px, c.withMultipliedAlpha (0.55f)); dot (x - px, y - px, c.withMultipliedAlpha (0.35f)); }
         if (exhale && k > 0.2f) { dot (x - px, y + px, c.withMultipliedAlpha (0.5f)); dot (x + px * 2, y - px, c.withMultipliedAlpha (0.4f)); }
     }
     // text + load bar
