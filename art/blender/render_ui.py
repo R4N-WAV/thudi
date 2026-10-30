@@ -215,7 +215,7 @@ def tray_cutter(name, x, y, w, h, depth, slope, radius):
     return ob
 
 
-def screw(x, y, r, mat):
+def make_screw(x, y, r, mat):
     head = cylinder("screwhead", x, y, r, 0.0, 0.022, mat, verts=48, r_top=r * 0.86, rim=r * 0.25)
     apply_all(head)
     a = rounded_box("slotA", x - r * 0.75, y - r * 0.13, r * 1.5, r * 0.26, 0.012, 0.05, 0)
@@ -486,7 +486,7 @@ def build_panel():
     # corner screws
     steel = material("steel", (0.35, 0.35, 0.37), rough=0.32, metal=1.0, bump=("noise", 2000.0, 0.02))
     for sx, sy in ((15, 15), (W - 15, 15), (15, H - 15), (W - 15, H - 15)):
-        screw(sx, sy, 5.0, steel)
+        make_screw(sx, sy, 5.0, steel)
 
     # துடி emblem: raised brushed-metal letters, reading bottom -> top
     emblem(LAY["logo"])

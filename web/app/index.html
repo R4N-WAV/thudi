@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#161618">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Thudi</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="machine">
+  <div id="grime" class="gaerro-layer"></div>
+
+  <header id="top">
+    <img id="emblem" src="assets/emblem.jpg" alt="துடி">
+    <button id="kitBtn" class="print">KIT <span id="kitName">INIT</span> ▾</button>
+    <div id="plaqueWrap"><img id="plaque" src="assets/plaque.jpg" alt="R4N"><span><b>R4N</b><small>THUDI DRUM SYNTHESIZER</small></span></div>
+  </header>
+
+  <section id="display">
+    <div class="bezel"><canvas id="lcd"></canvas></div>
+    <div class="softkeys">
+      <button class="key" data-k="0">&lt; PAGE</button>
+      <button class="key" data-k="1">PAGE &gt;</button>
+      <button class="key" data-k="2">BROWSE</button>
+      <button class="key" data-k="3">SAVE</button>
+    </div>
+  </section>
+
+  <section id="knobs"></section>
+
+  <section id="modes">
+    <div class="knob small" id="masterKnob"></div>
+    <button class="key toggle" id="soloBtn"><i class="led"></i>SOLO</button>
+    <button class="key" id="monoBtn" hidden>MONO</button>
+    <button class="key toggle" id="glideBtn" hidden><i class="led"></i>GLIDE</button>
+    <button class="key toggle" id="gaerroBtn" hidden><i class="led lime"></i>GÆRRO</button>
+    <div class="knob small gaerro-only" id="vinylKnob"></div>
+    <div class="knob small gaerro-only" id="dirtKnob"></div>
+  </section>
+
+  <section id="pads">
+    <div id="soloLabel" class="print" hidden></div>
+    <div id="grid"></div>
+  </section>
+</div>
+
+<div id="power">
+  <div class="power-card">
+    <img src="assets/emblem.jpg" alt="">
+    <h1>THUDI</h1>
+    <p>Drum synthesizer by R4N. Every pad is a synth voice.</p>
+    <button id="powerBtn">POWER ON</button>
+    <small>Headphones or speakers on. Works offline once loaded.</small>
+  </div>
+</div>
+
+<div id="sheet" hidden><div class="sheet-card"><div class="sheet-head"><b id="sheetTitle"></b><button id="sheetClose">✕</button></div><div id="sheetBody"></div></div></div>
+<input type="file" id="fileIn" accept="audio/*,.wav,.aif,.aiff,.mp3,.m4a,.flac,.ogg" hidden>
+<input type="file" id="kitIn" accept=".thudikit,application/json" hidden>
+<script src="app.js"></script>
+</body>
+</html>

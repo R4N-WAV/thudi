@@ -7,3 +7,6 @@ out/
 .vscode/
 .idea/
 __pycache__/
+web/app/thudi.wasm
+web/app/presets.json
+web/app/assets/

@@ -2,6 +2,15 @@
 #include <algorithm>
 #include <cstring>
 
+// sample pointers are swapped from the message thread; the web build (WASI, single-threaded worklet) has no atomics
+#if defined(__wasi__)
+ #define THUDI_SAMPLE_STORE(dst, v) (dst) = (v)
+ #define THUDI_SAMPLE_LOAD(src) (src)
+#else
+ #define THUDI_SAMPLE_STORE(dst, v) std::atomic_store (&(dst), v)
+ #define THUDI_SAMPLE_LOAD(src) std::atomic_load (&(src))
+#endif
+
 namespace thudi
 {
 // ===================================================================== GÆRRO stage
@@ -100,7 +109,7 @@ void Engine::reset()
 void Engine::setPadSample (int slot, SamplePtr s)
 {
     if (slot < 0 || slot >= kNumSlots) return;
-    std::atomic_store (&pads[(size_t) slot].sample, std::move (s));
+    THUDI_SAMPLE_STORE (pads[(size_t) slot].sample, std::move (s));
 }
 
 void Engine::queueUiHit (int padIndex, float velocity)
@@ -155,7 +164,7 @@ void Engine::triggerPad (int idx, float vel, float extraSemis, int depth)
     chokeGroup ((int) std::round (s[P::Choke]), idx);
     if (mono) for (int k = 0; k < numVoices (idx); ++k) if (p.voices[k].isActive()) p.voices[k].kill();
     const int slot = freeVoice (idx);
-    p.voices[slot].start (s, semi, vel, seedCounter++, std::atomic_load (&p.sample));
+    p.voices[slot].start (s, semi, vel, seedCounter++, THUDI_SAMPLE_LOAD (p.sample));
     p.voices[slot].lightPad = idx;
     p.lastVoice = slot;
     p.silentSamples = 0;
@@ -207,7 +216,7 @@ void Engine::soloOnNote (int note, float vel)
     {
         if (mono) for (int k = 0; k < kSoloVoices; ++k) if (p.voices[k].isActive()) p.voices[k].kill();
         const int slot = freeVoice (kSoloSlot);
-        p.voices[slot].start (s, semi, vel, seedCounter++, std::atomic_load (&p.sample));
+        p.voices[slot].start (s, semi, vel, seedCounter++, THUDI_SAMPLE_LOAD (p.sample));
         p.voices[slot].lightPad = light;
         p.lastVoice = slot;
     }
