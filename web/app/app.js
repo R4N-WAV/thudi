@@ -494,21 +494,25 @@ function buildPads() {
     grid.appendChild(cell);
     const pad = cell.querySelector('.pad');
     padEls[i] = { cell, pad, label: cell.querySelector('.t'), lit: cell.querySelectorAll('.lit'), halo: cell.querySelector('.halo'), last: -1 };
-    let hold = 0, startY = 0, startX = 0;
+    const held = new Set();
     pad.addEventListener('pointerdown', (ev) => {
       if (ev.button === 2) return;
+      ev.preventDefault();
       pad.setPointerCapture(ev.pointerId);
+      held.add(ev.pointerId);
       const r = pad.getBoundingClientRect();
       const vel = Math.max(0.25, Math.min(1, 1.05 - 0.75 * (ev.clientY - r.top) / r.height));
       ensureAudio();
       post({ type: 'hit', pad: i, vel });
       pad.classList.add('down'); setPadLit(i);
-      if (!isSolo() && S.selected !== i) selectPad(i);
-      startY = ev.clientY; startX = ev.clientX;
-      hold = setTimeout(() => { hold = 0; pad.classList.remove('down'); post({ type: 'release', pad: i }); padMenu(i); }, 550);
+      if (navigator.vibrate) try { navigator.vibrate(6); } catch {}
+      if (!isSolo() && S.selected !== i) requestAnimationFrame(() => selectPad(i));   // after the sound has gone out
     });
-    pad.addEventListener('pointermove', (ev) => { if (hold && Math.hypot(ev.clientX - startX, ev.clientY - startY) > 12) { clearTimeout(hold); hold = 0; } });
-    const up = () => { if (hold) { clearTimeout(hold); hold = 0; } pad.classList.remove('down'); setPadLit(i); post({ type: 'release', pad: i }); };
+    // holding a pad holds the note (808s in gate mode, SOLO): released only when the finger lifts
+    const up = (ev) => {
+      if (!held.delete(ev.pointerId) || held.size) return;
+      pad.classList.remove('down'); setPadLit(i); post({ type: 'release', pad: i });
+    };
     pad.addEventListener('pointerup', up); pad.addEventListener('pointercancel', up);
     pad.addEventListener('contextmenu', (ev) => { ev.preventDefault(); padMenu(i); });
   }
@@ -676,6 +680,7 @@ function softKey(i) {
 }
 $('#kitBtn').onclick = () => { S.mode = 'browse'; S.browse = 'kits'; refreshEntries(); drawLcd(); };
 $('#soloBtn').onclick = () => setSolo(!isSolo());
+$('#padBtn').onclick = () => padMenu(S.selected);
 $('#soloLabel').onclick = soloMenu;
 $('#monoBtn').onclick = () => { setParam(T.soloSlot, 'poly', pv(T.soloSlot, 'poly') >= 0.5 ? 0 : 1); refreshAll(); };
 $('#glideBtn').onclick = toggleGlide;
@@ -722,18 +727,17 @@ $('#gaerroBtn').onclick = () => setGaerro(!isGaerro());
 
 // where the stickers sit in the phone layout (parent section, CSS box, kind, delay in s)
 const STICKERS = [
-  ['g01_throwup', '#knobs', 'left:-7%;top:2%;width:114%;z-index:-1', 'tag', 0.10],
-  ['g02_r4n', '#top', 'left:24%;top:-8px;width:44px;z-index:3', 'sticker', 0.85],
-  ['g04_nosamples', '#display', 'left:-3%;bottom:30px;width:30%;z-index:3', 'sticker', 1.0],
-  ['g03_hello', '#display', 'right:-3%;bottom:30px;width:25%;z-index:3', 'sticker', 1.12],
-  ['g06_88', '#grid', 'left:43.5%;top:45%;width:13%;z-index:-1', 'sticker', 1.35],
-  ['g11_record', '#pads', 'right:-11%;top:22%;width:22%;z-index:-1', 'sticker', 1.45],
-  ['g12_vinyl', '#pads', 'left:-6%;top:62%;width:16%;z-index:-1', 'sticker', 1.55],
-  ['g14_crate', '#pads', 'left:-5%;top:14%;width:8%;z-index:-1', 'sticker', 1.62],
-  ['g07_tape', '#machine', 'left:2%;bottom:8px;width:52%;z-index:0', 'tag', 1.8],
-  ['g09_r4n_tag', '#top', 'right:18%;top:-6px;width:18%;z-index:1', 'tag', 2.05],
-  ['g17_star', '#knobs', 'right:-3%;bottom:-6%;width:9%;z-index:-1', 'tag', 2.2],
-  ['g13_stay', '#machine', 'right:3%;bottom:10px;width:38%;z-index:0', 'sticker', 2.35],
+  ['g01_throwup', '#knobs', 'left:-4%;top:-30%;width:108%;z-index:-1', 'tag', 0.10],
+  ['g02_r4n', '#top', 'right:74px;top:8px;width:30px;z-index:3', 'sticker', 0.85],
+  ['g04_nosamples', '#gridBox', 'left:0;top:-2px;width:23%;z-index:-1', 'sticker', 1.0],
+  ['g03_hello', '#gridBox', 'right:0;top:-4px;width:20%;z-index:-1', 'sticker', 1.12],
+  ['g06_88', '#gridBox', 'left:45.5%;top:45%;width:9%;z-index:-1', 'sticker', 1.35],
+  ['g11_record', '#gridBox', 'right:-7%;top:22%;width:15%;z-index:-1', 'sticker', 1.45],
+  ['g12_vinyl', '#gridBox', 'left:-4%;top:64%;width:12%;z-index:-1', 'sticker', 1.55],
+  ['g14_crate', '#gridBox', 'left:-3%;top:12%;width:6%;z-index:-1', 'sticker', 1.62],
+  ['g09_r4n_tag', '#display', 'right:30%;top:-30px;width:11%;z-index:3', 'tag', 2.05],
+  ['g17_star', '#modes', 'right:-2%;top:-14px;width:7%;z-index:-1', 'tag', 2.2],
+  ['g13_stay', '#gridBox', 'left:31%;bottom:-6px;width:38%;z-index:-1', 'sticker', 2.35],
 ];
 let stickerEls = [];
 function buildStickers() {
@@ -828,6 +832,7 @@ function globalKnob(el, id, label, red) {
 // ------------------------------------------------------------------ audio
 async function ensureAudio() {
   if (ctx) { if (ctx.state !== 'running') ctx.resume(); return; }
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}   // iPhone: play even with the ringer switch on silent
   ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
   await ctx.audioWorklet.addModule('worklet.js');
   node = new AudioWorkletNode(ctx, 'thudi', {
@@ -852,6 +857,21 @@ function midi() {
 }
 
 function loop() { renderLights(); requestAnimationFrame(loop); }
+
+// ------------------------------------------------------------------ the page never scrolls or zooms (only menus scroll)
+const inSheet = (t) => t && t.closest && t.closest('.sheet-card');
+document.addEventListener('touchmove', (e) => { if (!inSheet(e.target)) e.preventDefault(); }, { passive: false });
+document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+document.addEventListener('contextmenu', (e) => { if (!e.target.closest('.pad')) e.preventDefault(); });
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {   // iOS: a quick second tap must not zoom
+  const now = Date.now();
+  if (now - lastTouchEnd < 350 && !inSheet(e.target) && !(e.target.closest && e.target.closest('input'))) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ctx && ctx.state !== 'running') ctx.resume(); });
 
 // ------------------------------------------------------------------ boot
 async function boot() {

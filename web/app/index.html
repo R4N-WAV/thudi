@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content">
 <meta name="theme-color" content="#161618">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,6 +18,8 @@
 
   <header id="top">
     <img id="emblem" src="assets/emblem.jpg" alt="துடி">
+    <div class="knob small gaerro-only" id="vinylKnob"></div>
+    <div class="knob small gaerro-only" id="dirtKnob"></div>
     <button id="kitBtn" class="print">KIT <span id="kitName">INIT</span> ▾</button>
     <div id="plaqueWrap"><img id="plaque" src="assets/plaque.jpg" alt="R4N"><span><b>R4N</b><small>THUDI DRUM SYNTHESIZER</small></span></div>
   </header>
@@ -40,13 +42,12 @@
     <button class="key" id="monoBtn" hidden>MONO</button>
     <button class="key toggle" id="glideBtn" hidden><i class="led"></i>GLIDE</button>
     <button class="key toggle" id="gaerroBtn" hidden><i class="led lime"></i>GÆRRO</button>
-    <div class="knob small gaerro-only" id="vinylKnob"></div>
-    <div class="knob small gaerro-only" id="dirtKnob"></div>
+    <button class="key" id="padBtn">PAD ···</button>
   </section>
 
   <section id="pads">
     <div id="soloLabel" class="print" hidden></div>
-    <div id="grid"></div>
+    <div id="gridBox"><div id="grid"></div></div>
   </section>
 </div>
 
