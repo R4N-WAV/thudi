@@ -1,0 +1,367 @@
+MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
+
+  Checking File Globs
+  1>Checking Build System
+  Generating Thudi_artefacts/JuceLibraryCode/Thudi_resources.rc
+  Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  Thudi_rc_lib.vcxproj -> D:\a\thudi\thudi\build\Thudi_rc_lib.dir\Release\Thudi_rc_lib.lib
+  Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  Voice.cpp
+  juce_VST3ManifestHelper.cpp
+  Generating juce_binarydata_ThudiData/JuceLibraryCode/BinaryData1.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData2.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData3.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData4.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData5.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData6.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData7.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData8.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData9.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData10.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData11.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData12.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData13.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData14.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData15.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData16.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData17.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData18.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData19.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData20.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData21.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData22.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData23.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData24.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData25.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData26.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData27.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData28.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData29.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData30.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData31.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData32.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData33.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData34.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData35.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData36.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData37.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData38.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData39.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData40.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData41.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData42.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData43.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData44.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData45.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData46.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData47.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData48.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData49.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData50.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData51.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData52.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData53.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData54.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData55.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData56.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData57.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData58.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData59.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData60.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData61.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData62.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData63.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData64.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData65.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData66.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData67.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData68.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData69.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData70.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData71.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData72.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData73.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData74.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData75.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData76.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData77.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData78.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData79.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData80.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData81.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData82.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData83.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData84.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData85.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData86.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData87.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData88.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData89.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData90.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData91.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData92.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData93.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData94.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData95.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData96.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData97.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData98.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData99.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData100.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData101.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData102.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData103.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData104.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData105.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData106.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData107.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData108.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData109.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData110.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData111.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData112.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData113.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData114.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData115.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData116.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData117.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData118.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData119.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData120.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData121.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData122.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData123.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData124.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData125.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData126.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData127.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData128.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData129.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData130.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData131.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData132.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData133.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData134.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData135.cpp, juce_binarydata_ThudiData/JuceLibraryCode/BinaryData1Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  PadChain.cpp
+  BinaryData1.cpp
+  BinaryData2.cpp
+  BinaryData3.cpp
+  Engine.cpp
+  BinaryData4.cpp
+  BinaryData5.cpp
+  BinaryData6.cpp
+  SampleData.cpp
+  BinaryData7.cpp
+  BinaryData8.cpp
+  Generating Code...
+  BinaryData9.cpp
+  BinaryData10.cpp
+  BinaryData11.cpp
+  BinaryData12.cpp
+  BinaryData13.cpp
+  BinaryData14.cpp
+  BinaryData15.cpp
+  BinaryData16.cpp
+  BinaryData17.cpp
+  BinaryData18.cpp
+  BinaryData19.cpp
+  BinaryData20.cpp
+  Generating Code...
+  Compiling...
+  BinaryData21.cpp
+  BinaryData22.cpp
+  BinaryData23.cpp
+  BinaryData24.cpp
+  BinaryData25.cpp
+  thudi_dsp.vcxproj -> D:\a\thudi\thudi\build\Release\thudi_dsp.lib
+  BinaryData26.cpp
+  BinaryData27.cpp
+  BinaryData28.cpp
+  BinaryData29.cpp
+  BinaryData30.cpp
+  BinaryData31.cpp
+  BinaryData32.cpp
+  BinaryData33.cpp
+  BinaryData34.cpp
+  BinaryData35.cpp
+  BinaryData36.cpp
+  juce_vst3_helper.vcxproj -> D:\a\thudi\thudi\build\Release\juce_vst3_helper.exe
+  BinaryData37.cpp
+  BinaryData38.cpp
+  BinaryData39.cpp
+  BinaryData40.cpp
+  Generating Code...
+  Compiling...
+  BinaryData41.cpp
+  BinaryData42.cpp
+  BinaryData43.cpp
+  BinaryData44.cpp
+  BinaryData45.cpp
+  BinaryData46.cpp
+  BinaryData47.cpp
+  BinaryData48.cpp
+  BinaryData49.cpp
+  BinaryData50.cpp
+  BinaryData51.cpp
+  BinaryData52.cpp
+  BinaryData53.cpp
+  BinaryData54.cpp
+  BinaryData55.cpp
+  BinaryData56.cpp
+  BinaryData57.cpp
+  BinaryData58.cpp
+  BinaryData59.cpp
+  BinaryData60.cpp
+  Generating Code...
+  Compiling...
+  BinaryData61.cpp
+  BinaryData62.cpp
+  BinaryData63.cpp
+  BinaryData64.cpp
+  BinaryData65.cpp
+  BinaryData66.cpp
+  BinaryData67.cpp
+  BinaryData68.cpp
+  BinaryData69.cpp
+  BinaryData70.cpp
+  BinaryData71.cpp
+  BinaryData72.cpp
+  BinaryData73.cpp
+  BinaryData74.cpp
+  BinaryData75.cpp
+  BinaryData76.cpp
+  BinaryData77.cpp
+  BinaryData78.cpp
+  BinaryData79.cpp
+  BinaryData80.cpp
+  Generating Code...
+  Compiling...
+  BinaryData81.cpp
+  BinaryData82.cpp
+  BinaryData83.cpp
+  BinaryData84.cpp
+  BinaryData85.cpp
+  BinaryData86.cpp
+  BinaryData87.cpp
+  BinaryData88.cpp
+  BinaryData89.cpp
+  BinaryData90.cpp
+  BinaryData91.cpp
+  BinaryData92.cpp
+  BinaryData93.cpp
+  BinaryData94.cpp
+  BinaryData95.cpp
+  BinaryData96.cpp
+  BinaryData97.cpp
+  BinaryData98.cpp
+  BinaryData99.cpp
+  BinaryData100.cpp
+  Generating Code...
+  Compiling...
+  BinaryData101.cpp
+  BinaryData102.cpp
+  BinaryData103.cpp
+  BinaryData104.cpp
+  BinaryData105.cpp
+  BinaryData106.cpp
+  BinaryData107.cpp
+  BinaryData108.cpp
+  BinaryData109.cpp
+  BinaryData110.cpp
+  BinaryData111.cpp
+  BinaryData112.cpp
+  BinaryData113.cpp
+  BinaryData114.cpp
+  BinaryData115.cpp
+  BinaryData116.cpp
+  BinaryData117.cpp
+  BinaryData118.cpp
+  BinaryData119.cpp
+  BinaryData120.cpp
+  Generating Code...
+  Compiling...
+  BinaryData121.cpp
+  BinaryData122.cpp
+  BinaryData123.cpp
+  BinaryData124.cpp
+  BinaryData125.cpp
+  BinaryData126.cpp
+  BinaryData127.cpp
+  BinaryData128.cpp
+  BinaryData129.cpp
+  BinaryData130.cpp
+  BinaryData131.cpp
+  BinaryData132.cpp
+  BinaryData133.cpp
+  BinaryData134.cpp
+  BinaryData135.cpp
+  BinaryData136.cpp
+  BinaryData137.cpp
+  BinaryData138.cpp
+  BinaryData139.cpp
+  BinaryData140.cpp
+  Generating Code...
+  Compiling...
+  BinaryData141.cpp
+  BinaryData142.cpp
+  BinaryData143.cpp
+  BinaryData144.cpp
+  BinaryData145.cpp
+  BinaryData146.cpp
+  BinaryData147.cpp
+  BinaryData148.cpp
+  BinaryData149.cpp
+  BinaryData150.cpp
+  BinaryData151.cpp
+  BinaryData152.cpp
+  BinaryData153.cpp
+  BinaryData154.cpp
+  BinaryData155.cpp
+  BinaryData156.cpp
+  BinaryData157.cpp
+  BinaryData158.cpp
+  BinaryData159.cpp
+  BinaryData160.cpp
+  Generating Code...
+  Compiling...
+  BinaryData161.cpp
+  BinaryData162.cpp
+  BinaryData163.cpp
+  BinaryData164.cpp
+  BinaryData165.cpp
+  BinaryData166.cpp
+  BinaryData167.cpp
+  BinaryData168.cpp
+  BinaryData169.cpp
+  BinaryData170.cpp
+  BinaryData171.cpp
+  BinaryData172.cpp
+  BinaryData173.cpp
+  BinaryData174.cpp
+  BinaryData175.cpp
+  BinaryData176.cpp
+  BinaryData177.cpp
+  BinaryData178.cpp
+  BinaryData179.cpp
+  BinaryData180.cpp
+  Generating Code...
+  Compiling...
+  BinaryData181.cpp
+  BinaryData182.cpp
+  BinaryData183.cpp
+  BinaryData184.cpp
+  BinaryData185.cpp
+  BinaryData186.cpp
+  BinaryData187.cpp
+  BinaryData188.cpp
+  BinaryData189.cpp
+  BinaryData190.cpp
+  BinaryData191.cpp
+  BinaryData192.cpp
+  BinaryData193.cpp
+  BinaryData194.cpp
+  BinaryData195.cpp
+  BinaryData196.cpp
+  BinaryData197.cpp
+  BinaryData198.cpp
+  BinaryData199.cpp
+  BinaryData200.cpp
+  Generating Code...
+  Compiling...
+  BinaryData201.cpp
+  BinaryData202.cpp
+  BinaryData203.cpp
+  BinaryData204.cpp
+  BinaryData205.cpp
+  BinaryData206.cpp
+  BinaryData207.cpp
+  BinaryData208.cpp
+  BinaryData209.cpp
+  BinaryData210.cpp
+  BinaryData211.cpp
+  BinaryData212.cpp
+  BinaryData213.cpp
+  BinaryData214.cpp
+  BinaryData215.cpp
+  BinaryData216.cpp
+  BinaryData217.cpp
+  BinaryData218.cpp
+  BinaryData219.cpp
+  BinaryData220.cpp
+  Generating Code...
+  Compiling...
+  BinaryData221.cpp
+  BinaryData222.cpp
+  BinaryData223.cpp
+  BinaryData224.cpp
+  BinaryData225.cpp
+  BinaryData226.cpp
+  BinaryData227.cpp
+  BinaryData228.cpp
+  BinaryData229.cpp
+  BinaryData230.cpp
+  BinaryData231.cpp
+  BinaryData232.cpp
+  BinaryData233.cpp
+  BinaryData234.cpp
+  BinaryData235.cpp
+  BinaryData236.cpp
+  Generating Code...
+  ThudiData.vcxproj -> D:\a\thudi\thudi\build\Release\ThudiData.lib
+  Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  PluginProcessor.cpp
+  PresetManager.cpp
+  Assets.cpp
+  ThudiLookAndFeel.cpp
+  PadGrid.cpp
+  LcdDisplay.cpp
+  GaerroArt.cpp
+  PluginEditor.cpp
+  juce_audio_processors.cpp
+  juce_audio_processors_ara.cpp
+  juce_audio_processors_lv2_libs.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_graphics.cpp
+D:\a\thudi\thudi\build\_deps\juce-src\modules\juce_gui_basics\juce_gui_basics.cpp(61): warning : This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [D:\a\thudi\thudi\build\Thudi.vcxproj]
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_graphics_Sheenbidi.c
+  Thudi.vcxproj -> D:\a\thudi\thudi\build\Thudi_artefacts\Release\Thudi_SharedCode.lib
+  Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  juce_audio_plugin_client_AAX.cpp
+  juce_audio_plugin_client_AAX_utils.cpp
+  juce_audio_plugin_client_ARA.cpp
+  juce_audio_plugin_client_LV2.cpp
+  juce_audio_plugin_client_Standalone.cpp
+  juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_VST3.cpp
+     Creating library D:/a/thudi/thudi/build/Thudi_artefacts/Release/VST3/Thudi.lib and object D:/a/thudi/thudi/build/Thudi_artefacts/Release/VST3/Thudi.exp
+  Generating code
+D:\a\thudi\thudi\build\_deps\juce-src\modules\juce_graphics\images\juce_Image.cpp(321): warning C4723: potential divide by 0 [D:\a\thudi\thudi\build\Thudi_VST3.vcxproj]
+  Finished generating code
+  Thudi_VST3.vcxproj -> D:\a\thudi\thudi\build\Thudi_artefacts\Release\VST3\Thudi.vst3\Contents\x86_64-win\Thudi.vst3
+  removing moduleinfo.json
+  creating D:/a/thudi/thudi/build/Thudi_artefacts/Release/VST3/Thudi.vst3/Contents/Resources/moduleinfo.json
+MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
+
+  Checking File Globs
+  Generating thudi_snapshot_artefacts/JuceLibraryCode/thudi_snapshot_resources.rc
+  Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  thudi_snapshot_rc_lib.vcxproj -> D:\a\thudi\thudi\build\thudi_snapshot_rc_lib.dir\Release\thudi_snapshot_rc_lib.lib
+  thudi_dsp.vcxproj -> D:\a\thudi\thudi\build\Release\thudi_dsp.lib
+  ThudiData.vcxproj -> D:\a\thudi\thudi\build\Release\ThudiData.lib
+  Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  thudi_snapshot.cpp
+  PluginProcessor.cpp
+  PresetManager.cpp
+  Assets.cpp
+  ThudiLookAndFeel.cpp
+  PadGrid.cpp
+  LcdDisplay.cpp
+  GaerroArt.cpp
+  PluginEditor.cpp
+  juce_audio_processors.cpp
+  juce_audio_processors_ara.cpp
+  juce_audio_processors_lv2_libs.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_graphics.cpp
+D:\a\thudi\thudi\build\_deps\juce-src\modules\juce_gui_basics\juce_gui_basics.cpp(61): warning : This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [D:\a\thudi\thudi\build\thudi_snapshot.vcxproj]
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_basics.cpp
+  juce_audio_formats.cpp
+  juce_graphics_Sheenbidi.c
+  thudi_snapshot.vcxproj -> D:\a\thudi\thudi\build\thudi_snapshot_artefacts\Release\thudi_snapshot.exe
+MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
+
+  Checking File Globs
+  thudi_dsp.vcxproj -> D:\a\thudi\thudi\build\Release\thudi_dsp.lib
+  Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  thudi_render.cpp
+  thudi_render.vcxproj -> D:\a\thudi\thudi\build\Release\thudi_render.exe
+MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
+
+  Checking File Globs
+  thudi_dsp.vcxproj -> D:\a\thudi\thudi\build\Release\thudi_dsp.lib
+  Building Custom Rule D:/a/thudi/thudi/CMakeLists.txt
+  thudi_dsp_tests.cpp
+  thudi_dsp_tests.vcxproj -> D:\a\thudi\thudi\build\Release\thudi_dsp_tests.exe

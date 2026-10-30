@@ -1,0 +1,75 @@
+Thudi headless checks
+  [ok]   factory kits embedded (12)
+  [ok]   plugin starts with the empty Init kit (got Init)
+  [ok]   Init kit: every pad is empty and silent
+  [ok]   factory pad presets embedded (189)
+  [ok]   kit RHYNO: one 808 pad (1)
+  [ok]   kit RHYNO: all 16 pads sound (silent: 0, max peak 1.12)
+  [ok]   kit RHYNO: no runaway levels
+  [ok]   kit 808 CLASSIC: one 808 pad (1)
+  [ok]   kit 808 CLASSIC: all 16 pads sound (silent: 0, max peak 1.22)
+  [ok]   kit 808 CLASSIC: no runaway levels
+  [ok]   kit ATLANTA: one 808 pad (1)
+  [ok]   kit ATLANTA: all 16 pads sound (silent: 0, max peak 1.08)
+  [ok]   kit ATLANTA: no runaway levels
+  [ok]   kit BOOM BAP: one 808 pad (1)
+  [ok]   kit BOOM BAP: all 16 pads sound (silent: 0, max peak 1.03)
+  [ok]   kit BOOM BAP: no runaway levels
+  [ok]   kit DRILL: one 808 pad (1)
+  [ok]   kit DRILL: all 16 pads sound (silent: 0, max peak 1.06)
+  [ok]   kit DRILL: no runaway levels
+  [ok]   kit ELECTRO: one 808 pad (1)
+  [ok]   kit ELECTRO: all 16 pads sound (silent: 0, max peak 1.08)
+  [ok]   kit ELECTRO: no runaway levels
+  [ok]   kit GRIT LAB: one 808 pad (1)
+  [ok]   kit GRIT LAB: all 16 pads sound (silent: 0, max peak 1.03)
+  [ok]   kit GRIT LAB: no runaway levels
+  [ok]   kit HOUSE: one 808 pad (1)
+  [ok]   kit HOUSE: all 16 pads sound (silent: 0, max peak 1.11)
+  [ok]   kit HOUSE: no runaway levels
+  [ok]   kit LOFI DUST: one 808 pad (1)
+  [ok]   kit LOFI DUST: all 16 pads sound (silent: 0, max peak 1.01)
+  [ok]   kit LOFI DUST: no runaway levels
+  [ok]   kit MEMPHIS: one 808 pad (1)
+  [ok]   kit MEMPHIS: all 16 pads sound (silent: 0, max peak 1.02)
+  [ok]   kit MEMPHIS: no runaway levels
+  [ok]   kit RAGE: one 808 pad (1)
+  [ok]   kit RAGE: all 16 pads sound (silent: 0, max peak 1.02)
+  [ok]   kit RAGE: no runaway levels
+  [ok]   copy / paste pad
+  [ok]   swap pads
+  [ok]   rename pad
+  [ok]   save pad preset
+  [ok]   load saved pad preset
+  [ok]   save kit
+  [ok]   load saved kit
+  [ok]   init pad as model
+  [ok]   randomized pad renders finite audio
+  [ok]   solo sound chosen from the library (GLIDE 808)
+  [ok]   solo mode: low and high notes both play the solo sound
+  [ok]   save kit with a solo sound
+  [ok]   kit file brings back solo mode and its sound
+  [ok]   chop a break into 4 pads (4) 
+  [ok]   every chop plays (peak 0.882..0.92)
+  [ok]   chop 2 starts at the 2nd hit (0.238)
+  [ok]   dropped file is copied to the Samples folder
+  [ok]   save chopped kit
+  [ok]   chopped kit reloads its sample
+  [ok]   project state restores samples and GÃRRO mode
+  [ok]   state restores all pad parameters
+  [ok]   state restores labels and notes
+  [ok]   plugin renders the RHYNO pattern (peak 1.12)
+  [ok]   editor created
+  [ok]   hit pads light up, others stay dark (0.45, 0.00)
+  wrote D:\a\thudi\thudi\out\thudi_gui_glow.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_kick.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_808_env.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_hat.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_browser.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_kits.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_solo.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_gaerro_loading.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_gaerro.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_init.png (940x1210)
+  wrote D:\a\thudi\thudi\out\thudi_gui_default_size.png (677x871)
+ALL CHECKS PASSED

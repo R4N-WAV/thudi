@@ -1,0 +1,19 @@
+Thudi DSP tests
+  [ok] empty pad is silent
+    light: 0.940 -> 0.020 -> 0.000
+  [ok] pad glow rises on the hit and fades with the decay
+  [ok] other pads stay dark
+  [ok] solo notes sound
+  [ok] solo glow moves to the pad of the note (C3 + 7 -> pad 8)
+  [ok] mono legato: releasing the top note glides back, the sound keeps going
+  [ok] gate release when the last note is let go
+  [ok] solo mode ignores pad mapping (any note plays)
+    chop points: 0 10500 32700 42300
+  [ok] chop gives 4 slices
+    slice plays 0.251 s (expected ~0.25 s)
+  [ok] sample slice plays its region
+  [ok] speed 2x halves the slice
+    vinyl floor peak 0.1684
+  [ok] vinyl noise floor in gærro mode
+  [ok] back to silence when gærro is off
+ALL DSP TESTS PASSED
