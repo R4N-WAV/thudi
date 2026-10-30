@@ -37,7 +37,7 @@ jobs:
         with: { node-version: 22 }
       - name: Smoke test (the wasm engine plays the RHYNO kit)
         run: node tools/web_smoke.mjs web/app/thudi.wasm presets/factory/kits/RHYNO.thudikit
-      - name: Publish to the gh-pages branch (GitHub Pages: Settings > Pages > Deploy from branch > gh-pages)
+      - name: "Publish to the gh-pages branch (Pages source: Deploy from branch, gh-pages)"
         run: |
           cd web/app
           touch .nojekyll

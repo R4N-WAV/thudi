@@ -26,7 +26,7 @@ button { font: inherit; color: inherit; }
 /* header: emblem, kit, plaque */
 #top { display: flex; align-items: center; gap: 10px; position: relative; z-index: 2; }
 #emblem { height: 38px; border-radius: 4px; mix-blend-mode: lighten; }
-#kitBtn { flex: 1; background: none; border: 0; font-size: 18px; text-align: center; padding: 6px; }
+#kitBtn { flex: 1; min-width: 0; background: none; border: 0; font-size: 18px; text-align: center; padding: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #kitName { color: #f1eee6; }
 #plaqueWrap { position: relative; cursor: pointer; }
 #plaqueWrap span { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
