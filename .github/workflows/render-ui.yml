@@ -38,9 +38,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6
 
       - name: Render
+        shell: bash
         run: |
           SAMPLES="${{ github.event.inputs.samples || '96' }}"
-          ./blender/blender -b --factory-startup -P art/blender/render_ui.py -- assets/ui "$SAMPLES"
+          set -o pipefail
+          ./blender/blender -b --factory-startup --python-exit-code 1 -P art/blender/render_ui.py -- assets/ui "$SAMPLES" 2>&1 | tee render.log | grep -vE "^Fra:|Sample [0-9]+/"
           ls -la assets/ui
 
       - uses: actions/upload-artifact@v4
@@ -49,9 +51,10 @@ jobs:
           path: assets/ui/*.png
 
       - name: Publish renders branch
+        if: always()
         shell: bash
         run: |
-          mkdir -p publish && cp assets/ui/*.png publish/
+          mkdir -p publish && cp assets/ui/*.png publish/ && (grep -vE "Sample [0-9]+/" render.log | tail -400 > publish/render.log || true)
           cd publish
           git init -q
           git config user.name "thudi-ci"; git config user.email "ci@users.noreply.github.com"

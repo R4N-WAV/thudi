@@ -558,13 +558,13 @@ def build_pad(pressed, lit=None, name=None):
     if lit is not None:
         # backlit translucent rubber: colour from inside, strongest in the middle of the pad
         nt = rubber.node_tree
-        set_input(bsdf, "Base Color", (*[0.35 * base[k] + 0.65 * lit[k] * 0.55 for k in range(3)], 1))
+        set_input(bsdf, "Base Color", (*[0.6 * base[k] + 0.4 * lit[k] * 0.45 for k in range(3)], 1))
         set_input(bsdf, ["Emission Color", "Emission"], (*lit, 1))
         tc = nt.nodes.new("ShaderNodeTexCoord")
         mp = nt.nodes.new("ShaderNodeMapping"); mp.inputs["Scale"].default_value = (1.0 / (size * S * 0.62),) * 3
         gr = nt.nodes.new("ShaderNodeTexGradient"); gr.gradient_type = 'QUADRATIC_SPHERE'
         mr = nt.nodes.new("ShaderNodeMath"); mr.operation = 'MULTIPLY_ADD'
-        mr.inputs[1].default_value = 3.2; mr.inputs[2].default_value = 0.9
+        mr.inputs[1].default_value = 1.7; mr.inputs[2].default_value = 0.22
         nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
         nt.links.new(mp.outputs["Vector"], gr.inputs["Vector"])
         nt.links.new(gr.outputs["Fac"], mr.inputs[0])
